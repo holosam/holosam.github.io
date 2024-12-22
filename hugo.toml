@@ -1,3 +1,17 @@
 baseURL = 'https://holosam.github.io/'
 languageCode = 'en-us'
-title = 'My New Hugo Site'
+title = 'holosam.dev'
+
+enableGitInfo = true
+
+[menu]
+# [[menu.before]]
+[[menu.after]]
+  name = "Github"
+  url = "https://github.com/holosam"
+  weight = 10
+
+[params]
+  BookFavicon = 'favicon.ico'
+  BookRepo = 'https://github.com/holosam/holosam.github.io'
+  BookTheme = 'auto'
