@@ -1,11 +1,11 @@
 baseURL = 'https://holosam.github.io/'
 languageCode = 'en-us'
 title = 'holosam.dev'
+theme = 'hugo-book'
 
 enableGitInfo = true
 
 [menu]
-# [[menu.before]]
 [[menu.after]]
   name = "Github"
   url = "https://github.com/holosam"
