@@ -1,0 +1,15 @@
+baseURL: 'https://holosam.github.io/'
+title: 'Holosam'
+theme: 'hugo-book'
+
+enableGitInfo: true
+
+params:
+  BookRepo: 'https://github.com/holosam/holosam.github.io'
+  BookTheme: 'auto'
+
+menu:
+  after:
+  - name: "Github ↩"
+    url: "https://github.com/holosam"
+    weight: 1
