@@ -1,5 +1,8 @@
 **/.DS_Store
-.hugo_build.lock
 
-public/
-resources/_gen
+.vscode/
+
+.hugo_build.lock
+/public/
+/resources/_gen/
+/assets/jsconfig.json
