@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://holosam.dev/sitemap.xml

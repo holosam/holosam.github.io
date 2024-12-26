@@ -3,13 +3,22 @@ title: 'Holosam'
 theme: 'hugo-book'
 
 enableGitInfo: true
+enableRobotsTXT: true
 
 params:
   BookRepo: 'https://github.com/holosam/holosam.github.io'
   BookTheme: 'auto'
 
 menu:
+  before:
+  - name: "Posts"
+    pageRef: "/posts"
+    weight: 1
   after:
   - name: "Github ↩"
     url: "https://github.com/holosam"
     weight: 1
+
+taxonomies:
+  tag: tags
+  category: categories

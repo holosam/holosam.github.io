@@ -1,0 +1,16 @@
+{{ define "main" }}
+  <h2>{{ .Title }}</h2>
+  <article>
+    {{ .Content }}
+  </article>
+  <aside>
+    {{ with .GetTerms "tags" }}
+      <div>{{ (index . 0).Parent.LinkTitle }}</div>
+      <ul>
+        {{ range . }}
+          <li><a href="{{ .RelPermalink }}">{{ .LinkTitle }}</a></li>
+        {{ end }}
+      </ul>
+    {{ end }}
+  </aside>
+{{ end }}
