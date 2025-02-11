@@ -8,6 +8,13 @@ enableRobotsTXT: true
 params:
   BookRepo: 'https://github.com/holosam/holosam.github.io'
   BookTheme: 'auto'
+  BookLogo: /favicon.png
+
+# For inline HTML
+markup:
+  goldmark:
+    renderer:
+      unsafe: true
 
 menu:
   before:
@@ -18,7 +25,9 @@ menu:
   - name: "Github ↩"
     url: "https://github.com/holosam"
     weight: 1
+  - name: "Bluesky ↩"
+    url: "https://bsky.app/profile/holosam.dev"
+    weight: 2
 
 taxonomies:
   tag: tags
-  category: categories

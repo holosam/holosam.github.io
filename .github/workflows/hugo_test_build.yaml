@@ -1,18 +1,23 @@
 name: Test Hugo Build
-on: 
+
+on:
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-    - uses: actions/checkout@v3
-    
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
     - name: Setup Hugo
-      uses: peaceiris/actions-hugo@v2
+      uses: peaceiris/actions-hugo@v3
       with:
-        hugo-version: 'latest'
-        
-    - name: Build
+        hugo-version: "latest"
+        extended: true
+
+    - name: Build site
       run: hugo --minify
