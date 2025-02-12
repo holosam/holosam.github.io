@@ -1,5 +1,7 @@
 ---
 title: Home
+description: "Blog about tech, startups, and anything else on my mind."
+featured_image: "/profile.png"
 ---
 
 # Sammy's Blog
