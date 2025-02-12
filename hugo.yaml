@@ -2,8 +2,12 @@ baseURL: 'https://holosam.github.io/'
 title: 'Holosam'
 theme: 'hugo-book'
 
-enableGitInfo: true
+enableGitInfo: false
 enableRobotsTXT: true
+
+services:
+  googleAnalytics:
+    id: "{{ .Site.Params.analytics.googleAnalytics }}"
 
 params:
   BookRepo: 'https://github.com/holosam/holosam.github.io'
