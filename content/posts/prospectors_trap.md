@@ -59,9 +59,6 @@ Hm. At some point, these guys will need some new jeans.
 
 ## References
 
-_The Prospector’s Trap_ - Clint Sharp wrote [a great piece on startup sales](https://clintsharp.com/post/sell-the-product-before-it-exists/), with an especially relatable quote:
-  > Every prospect seemed like they were a feature away from being a customer.
-
 _The Rat and the Lever_ refers to [classic addiction studies](https://en.wikipedia.org/wiki/Brain_stimulation_reward) where rats with electrodes implanted in their brain's pleasure centers would compulsively press a lever for stimulation, sometimes to the point of exhaustion or starvation.
 
-_Exploit vs. Explore_ - This whole post reminds me of the [Multi-armed bandit](https://en.wikipedia.org/wiki/Multi-armed_bandit) problem - even the most shrewd Reinforcement Learning algorithms will still occasionally explore the space.
+_Exploit vs. Explore_ - This whole post reminds me of the [Multi-armed bandit](https://en.wikipedia.org/wiki/Multi-armed_bandit) problem, where even the most shrewd Reinforcement Learning algorithms will still occasionally explore the space.
