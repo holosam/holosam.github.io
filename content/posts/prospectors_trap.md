@@ -1,7 +1,7 @@
 ---
 title: "The Prospector's Trap"
 date: 2025-02-17T08:00:00-07:00
-description: "How long should you keep digging?"
+description: "How long should you keep digging in the same spot?"
 tags: ["startups"]
 ---
 
