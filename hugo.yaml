@@ -7,7 +7,7 @@ enableRobotsTXT: true
 
 services:
   googleAnalytics:
-    id: "{{ .Site.Params.analytics.googleAnalytics }}"
+    id: "G-L4ZRYXM8K1"
 
 params:
   BookRepo: 'https://github.com/holosam/holosam.github.io'
