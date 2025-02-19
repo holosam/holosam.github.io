@@ -3,6 +3,7 @@ title: "The Prospector's Trap"
 date: 2025-02-17T08:00:00-07:00
 description: "How long should you keep digging in the same spot?"
 tags: ["startups"]
+image: "images/dirt_gold.png"  # Relative to static/
 ---
 
 You’re a prospector during the California gold rush. You approach a riverbed and see a few people in the area, so you head to an untouched area and start digging.

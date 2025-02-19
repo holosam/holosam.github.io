@@ -1,2 +1,9 @@
 <!-- The default opengragh.html template is included in the theme but has unimplemented function in this theme, so manually insert this tag -->
-<meta property="og:image" content="https://holosam.dev/favicon_big.png">
+{{ if .Params.image }}
+  <meta property="og:image" content="{{ .Site.BaseURL }}{{ .Params.image }}">
+{{ else }}
+  <meta property="og:image" content="https://holosam.dev/banner.png">
+{{ end }}
+
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
