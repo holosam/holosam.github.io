@@ -3,7 +3,7 @@ title: "Manipulate Yourself Using the Sunk Cost Fallacy (Into Desirable Habits)"
 date: 2025-02-23T08:00:00-07:00
 description: "Exploit psychological weaknesses for good."
 tags: ["psychology"]
-# image: "images/titanium_pen.png"
+image: "images/titanium_pen.png"
 ---
 
 You buy a concert ticket for $100 but then get really sick the night before. You can't get a refund. What do you do?
