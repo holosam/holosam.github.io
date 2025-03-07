@@ -6,7 +6,7 @@ tags: ["projects"]
 image: "images/mario_neat_screenshot.png"
 ---
 
-A proposal for an improvement on NEAT's global innovation number to line up genes: create a "conglomerate" network which is a superset of all network topologies.
+A proposal for a tweak to NEAT's genome crossover: overlay genes on a "conglomerate" network, which is a superset of all network topologies.
 
 <!--more-->
 
