@@ -38,7 +38,7 @@ The outcome of this method is regardless of which two genomes generate offspring
 
 ## Takeaways
 
-Nothing, really. There's a lot more experimentation to do to test the viability of this Conglomerate idea, so I just wanted to write this post as a summary / checkpoint of the project in case I ever want to pick it up again.
+Maybe there's something promising here, maybe not. There's a lot more experimentation to do to test the viability, so I just wanted to write this post as a summary / checkpoint of the project in case I ever want to pick it up again.
 
 <br>
 <br>
