@@ -1,8 +1,11 @@
-+++
-title = "{{ replace .Name "-" " " | title }}"
-date = {{ .Date }}
-draft = true
-tags = []
-categories = []
-description = ""
-+++
+---
+title: "{{ replace .Name "-" " " | title }}"
+date: {{ .Date }}
+description: ""
+tags: []
+image: ""  # Optional: path relative to static/, e.g., "images/my-image.png"
+---
+
+Your content here. Use `<!--more-->` to mark where the excerpt ends.
+
+<!--more-->
