@@ -1,0 +1,19 @@
+{{ define "main" }}
+  <article>
+    <h2 class="recent-posts-heading">Posts tagged "{{ .Title }}"</h2>
+
+    <div class="recent-posts-list">
+      {{ range .Pages.ByDate.Reverse }}
+        <div class="recent-posts-item">
+          <div>
+            <a href="{{ .RelPermalink }}">{{ .Title }}</a>
+            {{ with .Description }}
+              <p class="recent-posts-description">{{ . }}</p>
+            {{ end }}
+          </div>
+          <span class="recent-posts-date">{{ .Date.Format "Jan 2, 2006" }}</span>
+        </div>
+      {{ end }}
+    </div>
+  </article>
+{{ end }}
