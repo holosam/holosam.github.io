@@ -1,0 +1,23 @@
+{{ with .Params.series }}
+  {{ $seriesName := index . 0 }}
+  {{ $currentPage := $ }}
+  {{ $pages := where $.Site.RegularPages "Params.series" "intersect" (slice $seriesName) }}
+  {{ $pages = sort $pages "Date" "asc" }}
+
+  {{ if gt (len $pages) 1 }}
+    <div class="series-nav">
+      <p class="series-nav-label">This post is part of the series <strong>{{ $seriesName }}</strong></p>
+      <ol class="series-nav-list">
+        {{ range $pages }}
+          <li{{ if eq .RelPermalink $currentPage.RelPermalink }} class="series-nav-current"{{ end }}>
+            {{ if eq .RelPermalink $currentPage.RelPermalink }}
+              {{ .Title }} (this post)
+            {{ else }}
+              <a href="{{ .RelPermalink }}">{{ .Title }}</a>
+            {{ end }}
+          </li>
+        {{ end }}
+      </ol>
+    </div>
+  {{ end }}
+{{ end }}

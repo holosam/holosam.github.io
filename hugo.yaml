@@ -2,7 +2,7 @@ baseURL: 'https://holosam.dev/'
 title: 'Holosam'
 theme: 'hugo-book'
 
-enableGitInfo: false
+enableGitInfo: true
 enableRobotsTXT: true
 
 services:
@@ -32,6 +32,10 @@ menu:
   - name: "Bluesky ↩"
     url: "https://bsky.app/profile/holosam.dev"
     weight: 2
+  - name: "RSS ↩"
+    url: "/index.xml"
+    weight: 3
 
 taxonomies:
   tag: tags
+  series: series

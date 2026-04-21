@@ -3,7 +3,7 @@ title: "Manipulate Yourself Using the Sunk Cost Fallacy (Into Desirable Habits)"
 date: 2025-02-23T08:00:00-07:00
 description: "Exploit psychological weaknesses for good."
 tags: ["psychology"]
-image: "images/titanium_pen.png"
+image: "images/titanium_pen.webp"
 ---
 
 You buy a concert ticket for $100 but then get really sick the night before. You can't get a refund. What do you do?
@@ -40,7 +40,7 @@ For me, this has worked best with a single, premium purchase.
 
 After starting and losing my journaling habit many times, what made it eventually stick was buying a titanium machined pen<sup>2</sup> that is as much of a work of art as it is a writing instrument. I'm drawn to pick up it whenever I'm sitting at my desk.
 
-Similarly, I had wanted to stop eating cereal or protein bars for breakfast, but nothing was beating the convenience... until I bought a Hexclad pan that lives on top of the stove. Cooking eggs for breakfast is now a daily joy.<sup>3<sup>
+Similarly, I had wanted to stop eating cereal or protein bars for breakfast, but nothing was beating the convenience... until I bought a Hexclad pan that lives on top of the stove. Cooking eggs for breakfast is now a daily joy.<sup>3</sup>
 
 ## What Doesn't
 
