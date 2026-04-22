@@ -31,8 +31,10 @@ jobs:
       run: hugo --gc --minify
 
     - name: Install htmltest
+      env:
+        HTMLTEST_VERSION: 0.17.0
       run: |
-        curl -sL https://github.com/wjdp/htmltest/releases/latest/download/htmltest_linux_amd64.tar.gz | tar xz -C /usr/local/bin
+        curl -sL "https://github.com/wjdp/htmltest/releases/download/v${HTMLTEST_VERSION}/htmltest_${HTMLTEST_VERSION}_linux_amd64.tar.gz" | tar xz -C /usr/local/bin
 
     - name: Run link and HTML checks
       run: htmltest
