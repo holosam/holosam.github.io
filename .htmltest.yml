@@ -1,0 +1,7 @@
+DirectoryPath: public
+CheckExternal: false
+CheckInternal: true
+CheckMailto: false
+CheckFavicons: false
+IgnoreAltMissing: false
+IgnoreAltEmpty: true

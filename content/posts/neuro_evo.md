@@ -3,7 +3,7 @@ title: "NEAT Topology Crossover via \"Conglomerate\" Network"
 date: 2025-03-04T08:00:00-07:00
 description: "Proposing a new method for gene crossover."
 tags: ["projects"]
-image: "images/mario_neat_screenshot.png"
+image: "images/mario_neat_screenshot.webp"
 ---
 
 A proposal for a tweak to NEAT's genome crossover: overlay genes on a "conglomerate" network, which is a superset of all network topologies.
@@ -26,7 +26,7 @@ In the original paper [Evolving Neural Networks through Augmenting Topologies](h
 
 The example here from the paper shows how genomes with disjoint genes can create offspring:
 
-![Two genomes generate offspring by lining up innovation numbers](/images/genetic_breeding.png "Genetic Breeding")
+![Two genomes generate offspring by lining up innovation numbers](/images/genetic_breeding.webp "Genetic Breeding")
 
 ## (New) Conglomerate Idea
 
@@ -34,7 +34,7 @@ Instead of mutating individual genomes and giving each new gene an innovation nu
 
 The outcome of this method is regardless of which two genomes generate offspring, they can always be overlaid on the Congomerate network. This was a more straightforward implementation to handle disjoint genes and generate the offspring topology:
 
-![Two genomes generate offspring by lining up topologies](/images/conglomerate_breeding.png "Conglomerate Breeding")
+![Two genomes generate offspring by lining up topologies](/images/conglomerate_breeding.webp "Conglomerate Breeding")
 
 ## Takeaways
 
