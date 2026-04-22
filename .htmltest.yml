@@ -4,3 +4,4 @@ CheckInternal: true
 CheckMailto: false
 CheckFavicons: false
 IgnoreAltMissing: false
+IgnoreAltEmpty: true
