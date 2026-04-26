@@ -4,6 +4,8 @@ date: 2025-03-04T08:00:00-07:00
 description: "Proposing a new method for gene crossover."
 tags: ["projects"]
 image: "images/mario_neat_screenshot.webp"
+aliases:
+  - /posts/neuro_evo/
 ---
 
 A proposal for a tweak to NEAT's genome crossover: overlay genes on a "conglomerate" network, which is a superset of all network topologies.
@@ -14,7 +16,7 @@ A proposal for a tweak to NEAT's genome crossover: overlay genes on a "conglomer
 
 I first got interested in the concept of [NEAT](https://en.wikipedia.org/wiki/Neuroevolution_of_augmenting_topologies) a few years ago after watching [MarI/O](https://www.youtube.com/watch?v=qv6UVOQ0F44) by creator Sethbling, where Mario is controlled by an AI, implemented as an evolving set of "neurons" that watch his environment to trigger button presses such as running and jumping.
 
-The concept of genetic evolution hooked me because I loved the concept of finding solutions that people would never try, like [NASA's Evolved Antenna](https://en.wikipedia.org/wiki/Evolved_antenna), so I took a couple days off work to hack on a [project](https://github.com/holosam/neuro-evo) with the goal of applying a version of this method from scratch to a more generic set of problems. I tried training this type of AI to play Tic Tac Toe and play a Prisoner's Dilemma simulation<sup>1</sup> against each other.
+The concept of genetic evolution hooked me because I loved the concept of finding solutions that people would never try, like [NASA's Evolved Antenna](https://en.wikipedia.org/wiki/Evolved_antenna), so I took a couple days off work to hack on a [project](https://github.com/holosam/neuro-evo) with the goal of applying a version of this method from scratch to a more generic set of problems. I tried training this type of AI to play Tic Tac Toe and play a Prisoner's Dilemma simulation[^1] against each other.
 
 It doesn't work... yet?
 
@@ -40,10 +42,4 @@ The outcome of this method is regardless of which two genomes generate offspring
 
 Maybe there's something promising here, maybe not. There's a lot more experimentation to do to test the viability, so I just wanted to write this post as a summary / checkpoint of the project in case I ever want to pick it up again.
 
-<br>
-<br>
-<br>
-
-## Footnotes
-
-<sup>1</sup> The [prisoner's dilemma simulation "game"](https://ncase.me/trust/) that inspired this idea.
+[^1]: The [prisoner's dilemma simulation "game"](https://ncase.me/trust/) that inspired this idea.

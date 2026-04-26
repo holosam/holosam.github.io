@@ -7,6 +7,8 @@ image: ""  # Optional: path relative to static/, e.g., "images/my-image.webp"
 # series: []  # Optional: group related posts, e.g., ["My Series"]
 ---
 
-Your content here. Use `<!--more-->` to mark where the excerpt ends.
+Excerpt shown on the home page goes here.
 
 <!--more-->
+
+Rest of the post...

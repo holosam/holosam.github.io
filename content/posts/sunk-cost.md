@@ -4,6 +4,8 @@ date: 2025-02-23T08:00:00-07:00
 description: "Exploit psychological weaknesses for good."
 tags: ["psychology"]
 image: "images/titanium_pen.webp"
+aliases:
+  - /posts/sunk_cost/
 ---
 
 You buy a concert ticket for $100 but then get really sick the night before. You can't get a refund. What do you do?
@@ -22,7 +24,7 @@ Did you make the right decision to go? Not going to the concert would've felt li
 
 Who cares!
 
-My point here is that there exists such a powerful function programmed into your brain that overrides all rationality. The innate need to avoid waste overrode all other sensibilities.<sup>1</sup>
+My point here is that there exists such a powerful function programmed into your brain that overrides all rationality. The innate need to avoid waste overrode all other sensibilities.[^1]
 
 So instead of fighting it, let's use it for good.
 
@@ -38,9 +40,9 @@ It takes a lot less willpower to buy and book a 5-pack of workout classes from t
 
 For me, this has worked best with a single, premium purchase.
 
-After starting and losing my journaling habit many times, what made it eventually stick was buying a titanium machined pen<sup>2</sup> that is as much of a work of art as it is a writing instrument. I'm drawn to pick up it whenever I'm sitting at my desk.
+After starting and losing my journaling habit many times, what made it eventually stick was buying a titanium machined pen[^2] that is as much of a work of art as it is a writing instrument. I'm drawn to pick up it whenever I'm sitting at my desk.
 
-Similarly, I had wanted to stop eating cereal or protein bars for breakfast, but nothing was beating the convenience... until I bought a Hexclad pan that lives on top of the stove. Cooking eggs for breakfast is now a daily joy.<sup>3</sup>
+Similarly, I had wanted to stop eating cereal or protein bars for breakfast, but nothing was beating the convenience... until I bought a Hexclad pan that lives on top of the stove. Cooking eggs for breakfast is now a daily joy.[^3]
 
 ## What Doesn't
 
@@ -50,14 +52,6 @@ I've had trouble sticking to a regular meditation practice despite having a Head
 
 Rather than exhausting ourselves by constantly fighting our innate psychology, we can strategically channel it. A few well-placed investments have changed my habits.
 
-<br>
-<br>
-<br>
-
-## Footnotes
-
-<sup>1</sup> I'm kind of generalizing the use of "sunk cost fallacy" in this post. The examples given are actually leveraging a combination of loss aversion, the endowment effect, and commitment devices - all psychological principles that describe tendencies to value what we own and avoid waste.
-
-<sup>2</sup> The pen in question: a [Billetspin CamPen](https://www.billetspin.com/campen/tumbledtitanium).
-
-<sup>3</sup> Sure, the quality of the pan removes some friction in the cooking and cleaning process, but the activity is otherwise largely the same, so I'm theorizing the habit is formed mostly due to the existence of the purchase itself rather than the experience of using it.
+[^1]: I'm kind of generalizing the use of "sunk cost fallacy" in this post. The examples given are actually leveraging a combination of loss aversion, the endowment effect, and commitment devices - all psychological principles that describe tendencies to value what we own and avoid waste.
+[^2]: The pen in question: a [Billetspin CamPen](https://www.billetspin.com/campen/tumbledtitanium).
+[^3]: Sure, the quality of the pan removes some friction in the cooking and cleaning process, but the activity is otherwise largely the same, so I'm theorizing the habit is formed mostly due to the existence of the purchase itself rather than the experience of using it.

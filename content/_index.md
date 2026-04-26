@@ -1,12 +1,12 @@
 ---
-title: Home
+title: "Sam's Notebook"
 description: "Sam's notes about tech and other interests."
 featured_image: "/images/profile.webp"
 ---
 
 <h1>Sam's Notebook</h1>
 
-<img align="right" src="/images/profile.webp" alt="profile photo" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); border: 2px solid rgba(255, 255, 255, 0.1);">
+<img class="home-avatar" src="/images/profile.webp" alt="Sam Farid" width="120" height="120">
 
 I'm Sam Farid and I work in tech in the Bay Area. Right now I'm building <a href="https://flightcrew.io/" target="_blank">Flightcrew</a>.
 
