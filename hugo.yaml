@@ -5,6 +5,9 @@ theme: 'hugo-book'
 enableGitInfo: true
 enableRobotsTXT: true
 
+ignoreFiles:
+  - "\\.DS_Store$"
+
 services:
   googleAnalytics:
     id: "G-L4ZRYXM8K1"
@@ -12,7 +15,8 @@ services:
 params:
   BookRepo: 'https://github.com/holosam/holosam.github.io'
   BookTheme: 'auto'
-  BookLogo: /favicon.png
+  BookLogo: /holosam_profile.png
+  BookSearch: false
 
 # For inline HTML
 markup:
@@ -26,13 +30,13 @@ menu:
     pageRef: "/posts"
     weight: 1
   after:
-  - name: "Github ↩"
+  - name: "Github ↗"
     url: "https://github.com/holosam"
     weight: 1
-  - name: "Bluesky ↩"
+  - name: "Bluesky ↗"
     url: "https://bsky.app/profile/holosam.dev"
     weight: 2
-  - name: "RSS ↩"
+  - name: "RSS ↗"
     url: "/index.xml"
     weight: 3
 

@@ -1,36 +1,24 @@
-<!-- The default opengragh.html template is included in the theme but has unimplemented function in this theme, so manually insert this tag -->
-{{ if .Params.image }}
-  <meta property="og:image" content="{{ .Site.BaseURL }}{{ .Params.image }}">
-{{ else }}
-  <meta property="og:image" content="{{ .Site.BaseURL }}banner.png">
-{{ end }}
-
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
+<!-- The default opengraph.html in the theme has unimplemented functions, so manually insert og:image -->
+{{ $image := cond .Params.image (printf "%s%s" .Site.BaseURL .Params.image) (printf "%sbanner.png" .Site.BaseURL) }}
+<meta property="og:image" content="{{ $image }}">
+<meta property="og:image:alt" content="{{ .Title | default .Site.Title }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="{{ $image }}">
 
 {{ if eq .Section "posts" }}
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "BlogPosting",
-  "headline": {{ .Title | jsonify }},
-  "description": {{ .Description | jsonify }},
-  "datePublished": {{ .Date.Format "2006-01-02T15:04:05-07:00" | jsonify }},
-  "dateModified": {{ .Lastmod.Format "2006-01-02T15:04:05-07:00" | jsonify }},
-  "author": {
-    "@type": "Person",
-    "name": "Sam Farid",
-    "url": {{ .Site.BaseURL | jsonify }}
-  },
-  "publisher": {
-    "@type": "Person",
-    "name": "Sam Farid"
-  },
-  "mainEntityOfPage": {
-    "@type": "WebPage",
-    "@id": {{ .Permalink | jsonify }}
-  }{{ with .Params.image }},
-  "image": {{ printf "%s%s" $.Site.BaseURL . | jsonify }}{{ end }}
-}
-</script>
+  {{ $data := dict
+    "@context" "https://schema.org"
+    "@type" "BlogPosting"
+    "headline" .Title
+    "description" .Description
+    "datePublished" (.Date.Format "2006-01-02T15:04:05-07:00")
+    "dateModified" (.Lastmod.Format "2006-01-02T15:04:05-07:00")
+    "author" (dict "@type" "Person" "name" "Sam Farid" "url" .Site.BaseURL)
+    "publisher" (dict "@type" "Person" "name" "Sam Farid")
+    "mainEntityOfPage" (dict "@type" "WebPage" "@id" .Permalink)
+  }}
+  {{ with .Params.image }}
+    {{ $data = merge $data (dict "image" (printf "%s%s" $.Site.BaseURL .)) }}
+  {{ end }}
+  <script type="application/ld+json">{{ $data | jsonify | safeJS }}</script>
 {{ end }}

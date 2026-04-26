@@ -4,6 +4,8 @@ date: 2025-02-17T08:00:00-07:00
 description: "How long should you keep digging in the same spot?"
 tags: ["startups"]
 image: "images/dirt_gold.webp"
+aliases:
+  - /posts/prospectors_trap/
 ---
 
 You're a prospector during the California gold rush. You approach a riverbed and see a few people in the area, so you head to an untouched area and start digging.
@@ -54,11 +56,9 @@ You climb up on your mound of dirt and look around, scoping out your next spot f
 
 Hm. At some point, these guys will need some new jeans.
 
-<br>
-<br>
-<br>
+---
 
-## References
+**References**
 
 _The Rat and the Lever_ refers to [classic addiction studies](https://en.wikipedia.org/wiki/Brain_stimulation_reward) where rats with electrodes implanted in their brain's pleasure centers would compulsively press a lever for stimulation, sometimes to the point of exhaustion or starvation.
 

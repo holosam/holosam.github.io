@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 .PHONY: serve build new-post compress-image compress-all clean help
 
 # Default target
@@ -22,9 +24,8 @@ compress-image: ## Compress a single image to WebP (usage: make compress-image s
 
 compress-all: ## Compress all PNG/JPG images in static/images/ to WebP
 	@command -v cwebp >/dev/null 2>&1 || { echo "cwebp not found. Install with: brew install webp"; exit 1; }
-	@for f in static/images/*.png static/images/*.jpg static/images/*.jpeg 2>/dev/null; do \
-		[ -f "$$f" ] || continue; \
-		out="$$(echo "$$f" | sed 's/\.[^.]*$$/.webp/')"; \
+	@shopt -s nullglob; for f in static/images/*.png static/images/*.jpg static/images/*.jpeg; do \
+		out="$${f%.*}.webp"; \
 		echo "Converting $$f -> $$out"; \
 		cwebp -q 80 "$$f" -o "$$out"; \
 	done
