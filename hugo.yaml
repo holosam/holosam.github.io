@@ -15,7 +15,7 @@ services:
 params:
   BookRepo: 'https://github.com/holosam/holosam.github.io'
   BookTheme: 'auto'
-  BookLogo: /favicon.png
+  BookLogo: /holosam_profile.png
   BookSearch: false
 
 # For inline HTML
