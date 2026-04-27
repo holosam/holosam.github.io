@@ -1,5 +1,5 @@
 ---
-title: "Sam's Notebook"
+title: "Home"
 description: "Sam's notes about tech and other interests."
 featured_image: "/images/profile.webp"
 ---

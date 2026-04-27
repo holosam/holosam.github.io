@@ -2,7 +2,10 @@
 
 .vscode/
 
+# Hugo files
 .hugo_build.lock
 /public/
 /resources/_gen/
 /assets/jsconfig.json
+
+IDEAS.md
