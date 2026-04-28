@@ -73,14 +73,14 @@ An LLM has the responsibility for building a layer of understanding on top of th
 ### Actions
 
 1. **Insert** - new lore or pages enter the system. The advisor swarm discusses and tags the information, a new entity/relationship page is created in `lore/`, backlinks are updated, and validation runs as a triplet:
-  - **Inbound check** - does this contradict anything established? (hard conflicts)
-  - **Stress test** - what future scenarios does this make impossible or implausible? "You've established X, which means Y will need resolution eventually." (soft constraints)
-  - **Implication mining** - what does this imply that hasn't been stated? "If this civilization has had X for 300 years but only done Y, something is suppressing progress - we should address that."
+    - **Inbound check** - does this contradict anything established? (hard conflicts)
+    - **Stress test** - what future scenarios does this make impossible or implausible? "You've established X, which means Y will need resolution eventually." (soft constraints)
+    - **Implication mining** - what does this imply that hasn't been stated? "If this civilization has had X for 300 years but only done Y, something is suppressing progress - we should address that."
 
 2. **Query** - ask a question about the world. Responses should include a direct reference to a source doc and line number(s). These questions should be logged and answers should be stored in some form in the cache as well. Ask things like:
-   - "Give me everything that depends on X" (dependency traversal)
-   - "What breaks if I change X?" (impact analysis)
-   - "What does this character know about X at this time?" (temporal consistency)
+    - "Give me everything that depends on X" (dependency traversal)
+    - "What breaks if I change X?" (impact analysis)
+    - "What does this character know about X at this time?" (temporal consistency)
 
 3. **Resolve** - on cadence (nightly?), a full crawl runs the validation triplet to check for conflicts, unanswered questions, and missing links. Surfaces tensions to the author with severity and age.
 
