@@ -1,5 +1,5 @@
 ---
-title: "Worldforge"
+title: "Worldforge: A Sci-Fi World-Building Sidekick"
 date: 2026-04-26T20:56:05-07:00
 description: "Lore tracker for sci-fi worldbuilding."
 tags: ["projects"]
@@ -13,7 +13,7 @@ The amount of world lore, individual character perspectives, deciding what goes 
 
 Around the same time, I was hearing about [Kosmos](https://edisonscientific.com/articles/announcing-kosmos) which has a deeply complex agent memory system. I thought it would be fun to try applying this concept by building a side project with the challenge of achieving 100% fidelity for persistence and recall - applied to this subject with relatively little financial upside, which forces it to _stay_ fun.
 
-A couple-thousand-word [gist from Karpathy](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) did, however, show that you can do a lot of this with way fewer words than I had expected (and no code). So in that spirit, I thought I'd share the version I had worked on, in case it's useful to authors who'd want a more specialized prompt for writing and worldbuilding, and an optional opinionated cast of advisors.
+A couple-thousand-word [gist from Karpathy](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) did, however, show that you can do a lot of this with way fewer words than I had expected (and no code). So in that spirit, I thought I'd share the project plan I had worked on, in case it's useful to authors who'd want to tweak their prompts to be more specialized for writing and worldbuilding, and try out an opinionated cast of advisors.
 
 ---
 

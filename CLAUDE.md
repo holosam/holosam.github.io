@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Guidance for Claude Code when working in this repo. This is a personal blog hosted at https://holosam.dev/
+This is a personal blog hosted at https://holosam.dev/
 
 ## Writing and content
 
@@ -24,15 +24,17 @@ date: 2026-01-11T08:00:00-07:00
 description: "Short description (shown on home page and SEO)"
 tags: ["psychology"]
 image: "images/relevant-image.webp"   # optional, relative to static/
-series: ["My Series Name"]            # optional
+series: ["Series Name"]            # optional
 ---
 ```
 
-### Voice
-Existing posts are the canonical reference — voice varies but skews personal, direct, and a little wry. Openings should hook the reader; avoid SaaS/PRD framing.
-
 ### Editorial reviews
-Flag typos, redundancy, and voice slips with line numbers. Be honest about whether a draft reads as embarrassing or fine — softening criticism doesn't help.
+Flag honest critiques by line number:
+- Content: factual accuracy, voice inconsistency
+- Copy issues: typos, redundancies, huge structure
+- Any other concerns
+
+Use existing posts as canonical reference for voice. Audience is technical.
 
 ## Hugo / build details
 
@@ -58,10 +60,10 @@ Exception: `static/banner.png` stays PNG for Open Graph compatibility.
 `series: ["Name"]` in front matter groups posts. The partial at `layouts/partials/series-nav.html` renders prev/next nav at the top and bottom of each post in the series.
 
 ### Gotchas
-- Hugo version is pinned to **0.160.1 extended** in CI — match locally or builds may diverge.
-- Theme `themes/hugo-book/` is a git submodule — after cloning or switching branches, run `git submodule update --init --recursive`.
+- Hugo version is pinned to **0.160.1 extended** in CI for now - match locally or builds may diverge.
+- Theme `themes/hugo-book/` is a git submodule - after cloning or switching branches, run `git submodule update --init --recursive`.
 - `unsafe: true` markup is enabled, so inline HTML in markdown works.
-- Custom layouts override the theme: home page (`layouts/index.html`), post layout (`layouts/posts/single.html`), head injection (`layouts/partials/docs/inject/head.html` — OG image + JSON-LD).
+- Custom layouts override the theme: home page (`layouts/index.html`), post layout (`layouts/posts/single.html`), head injection (`layouts/partials/docs/inject/head.html` - OG image + JSON-LD).
 
 ### Deployment
 PRs run `hugo_test_build.yaml` (build + htmltest link check). Then merge to `main` → `.github/workflows/hugo_deploy.yaml` deploys to GitHub Pages.
