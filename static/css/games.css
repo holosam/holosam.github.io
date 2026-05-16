@@ -1,0 +1,411 @@
+/* ─── Page shell ─────────────────────────────────────────────────────────── */
+body.game-body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--body-background, #fff);
+  color: var(--body-font-color, #000);
+}
+
+.game-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 1.25rem;
+  border-bottom: 1px solid var(--gray-200, #d1d5db);
+  font-size: 0.9rem;
+}
+
+.game-back {
+  text-decoration: none;
+  color: var(--color-link, #0275d8);
+  white-space: nowrap;
+}
+
+.game-header-title {
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-size: 1.1rem;
+}
+
+.game-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+
+/* ─── Blossom ──────────────────────────────────────────────────────────────
+   Flower aesthetic: cool-toned "unbloomed" petals, warm cream "bloomed"
+   petals, coral "in-bloom" current word. Adjacent tiles lift like petals
+   off the page. Words bloom when entered.
+   --------------------------------------------------------------------- */
+.bl-container {
+  /* Light theme — soft floral palette */
+  --bl-stroke: #3a2f24;
+  --bl-text: #2c1f12;
+  --bl-text-soft: #8a6f55;
+  --bl-unused: #b9dde3;       /* sage-blue, "unbloomed" */
+  --bl-unused-text: #3a4a52;
+  --bl-used: #fdf3df;         /* warm cream, "bloomed but settled" */
+  --bl-used-text: #6a5436;
+  --bl-sel: #ffc890;          /* peach */
+  --bl-active: #f08a4b;       /* vivid coral */
+  --bl-anchor: #c2461a;       /* deep amber border */
+  --bl-bg-accent: #fff7ec;
+  --bl-shadow: 0 3px 4px -1px rgba(120, 60, 20, 0.22);
+  --bl-shadow-hover: 0 5px 6px -1px rgba(120, 60, 20, 0.28);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 720px;
+  padding: 0.75rem 0.75rem 1.5rem;
+  gap: 0.6rem;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  color: var(--bl-text);
+}
+
+.bl-header-row {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: var(--bl-text-soft);
+}
+
+.bl-help {
+  border: 1px solid var(--bl-text-soft);
+  background: transparent;
+  color: inherit;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.bl-help:hover { background: var(--bl-bg-accent); }
+
+.bl-words {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 2.4rem;
+}
+
+.bl-par {
+  font-size: 0.85rem;
+  color: var(--bl-text-soft);
+  letter-spacing: 0.02em;
+}
+
+.bl-word-chain {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.4rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.bl-word-chip {
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+  color: var(--bl-anchor);
+}
+
+.bl-word-sep {
+  color: var(--bl-text-soft);
+  opacity: 0.5;
+  font-weight: 400;
+}
+
+.bl-current {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  min-height: 2.2rem;
+  text-align: center;
+  color: var(--bl-active);
+  transition: color 0.15s;
+}
+
+.bl-current:empty::before { content: '\00a0'; }
+
+.bl-shake {
+  animation: bl-shake 0.45s ease;
+  color: #d33;
+}
+
+@keyframes bl-shake {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+.bl-done-banner {
+  color: var(--bl-anchor);
+  font-size: 1.1rem;
+  letter-spacing: 0.06em;
+}
+
+.bl-grid-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* Aspect-locked wrapper: padding-bottom percentage (set inline from JS) pins
+   the box to a fixed width:height ratio. The SVG fills it absolutely, so
+   nothing inside the SVG (animations, lifted tiles, overflow) can ever
+   change the wrapper's box dimensions. */
+.bl-grid-aspect {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+}
+
+.bl-grid {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  /* overflow visible so lifted petals + shadows aren't clipped */
+  overflow: visible;
+}
+
+.bl-hex polygon {
+  fill: var(--bl-used);
+  stroke: var(--bl-stroke);
+  stroke-width: 1.4;
+  transition: fill 0.18s, stroke 0.18s, transform 0.18s ease, filter 0.18s ease;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.bl-hex text {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 24px;
+  font-weight: 600;
+  fill: var(--bl-text);
+  pointer-events: none;
+  text-transform: uppercase;
+  transition: fill 0.18s ease, transform 0.18s ease;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* Unused (yet to bloom) */
+.bl-hex.bl-unused polygon { fill: var(--bl-unused); stroke: var(--bl-stroke-unused, var(--bl-stroke)); }
+.bl-hex.bl-unused text { fill: var(--bl-unused-text); }
+
+/* Used (already bloomed — still readable, not greyed out) */
+.bl-hex.bl-used polygon { fill: var(--bl-used); stroke: var(--bl-stroke-used, var(--bl-stroke)); }
+.bl-hex.bl-used text { fill: var(--bl-used-text); }
+
+/* In the current word */
+.bl-hex.bl-sel polygon { fill: var(--bl-sel); stroke: var(--bl-stroke-sel, var(--bl-stroke)); }
+.bl-hex.bl-sel text { fill: var(--bl-text); }
+
+/* Last-tapped — the bloom's center */
+.bl-hex.bl-active polygon {
+  fill: var(--bl-active);
+  stroke: var(--bl-stroke-sel, var(--bl-stroke));
+  stroke-width: 2;
+}
+.bl-hex.bl-active text { fill: #fff8ec; }
+
+/* Anchor — the start of the current word, marked with a deep border */
+.bl-hex.bl-anchor polygon {
+  stroke: var(--bl-anchor);
+  stroke-width: 2.6;
+}
+
+/* Petals — adjacent to last tap, lifted off the page (letter lifts with it) */
+.bl-hex.bl-adj { cursor: pointer; }
+.bl-hex.bl-adj polygon,
+.bl-hex.bl-adj text {
+  transform: translateY(-4px);
+}
+.bl-hex.bl-adj polygon {
+  stroke-width: 2;
+  filter: drop-shadow(var(--bl-shadow));
+}
+@media (hover: hover) {
+  .bl-hex.bl-adj:hover polygon,
+  .bl-hex.bl-adj:hover text {
+    transform: translateY(-7px);
+  }
+  .bl-hex.bl-adj:hover polygon {
+    filter: drop-shadow(var(--bl-shadow-hover));
+  }
+}
+
+/* Bloom animation — fires on the cells of a just-entered word.
+   Both polygon and text scale together so the letter blooms with the tile. */
+.bl-hex.bl-bloom polygon,
+.bl-hex.bl-bloom text {
+  animation: bl-bloom 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes bl-bloom {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.22); }
+  100% { transform: scale(1); }
+}
+
+/* Final celebration — cascades across all tiles when the puzzle is complete */
+.bl-hex.bl-victory polygon,
+.bl-hex.bl-victory text {
+  animation: bl-bloom 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.bl-toast {
+  min-height: 1.4rem;
+  font-size: 0.9rem;
+  color: #c33;
+  opacity: 0;
+  transition: opacity 0.2s;
+  text-align: center;
+}
+
+.bl-toast--on { opacity: 1; }
+
+.bl-buttons {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.bl-btn {
+  background: #fff;
+  border: 1.5px solid #2c2c2c;
+  color: #2c2c2c;
+  padding: 0.55rem 1.4rem;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: background 0.15s, transform 0.05s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bl-btn:hover { background: #f5f5f5; }
+.bl-btn:active { transform: scale(0.97); }
+
+.bl-btn--primary {
+  border-width: 2px;
+  font-weight: 700;
+}
+
+.bl-btn--primary:hover { background: #e8f1fa; }
+
+/* Modal */
+.bl-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1rem;
+}
+
+.bl-modal[hidden] { display: none; }
+
+.bl-modal-card {
+  background: #fff;
+  color: #222;
+  border-radius: 8px;
+  padding: 1.5rem 1.75rem;
+  max-width: 420px;
+  width: 100%;
+  position: relative;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+}
+
+.bl-modal-card h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+}
+
+.bl-modal-card ol {
+  margin: 0;
+  padding-left: 1.25rem;
+  line-height: 1.5;
+}
+
+.bl-modal-card li { margin: 0.35rem 0; }
+
+.bl-modal-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #888;
+  line-height: 1;
+}
+
+.bl-modal-close:hover { color: #222; }
+
+@media (prefers-color-scheme: dark) {
+  .bl-container {
+    /* Dark theme — warm cream petals against deep teal-leaf background.
+       Each state gets its own stroke so borders stay visible on every fill. */
+    --bl-stroke: #e8d8c0;            /* default: light, for dark backgrounds */
+    --bl-stroke-unused: #1a3540;     /* dark, against teal */
+    --bl-stroke-used: #6a4828;       /* warm brown, against cream */
+    --bl-stroke-sel: #6a3a10;        /* deep amber, against peach/coral */
+    --bl-text: #1e1410;
+    --bl-text-soft: #b5a890;
+    --bl-unused: #3a6b7f;            /* deep sage-teal "leaves" */
+    --bl-unused-text: #e6f2f5;
+    --bl-used: #ead8b8;              /* warm cream — readable against dark bg */
+    --bl-used-text: #5a3a1a;
+    --bl-sel: #f0b070;               /* lit peach */
+    --bl-active: #ff8a3d;            /* coral bloom */
+    --bl-anchor: #ffc24a;            /* gold */
+    --bl-bg-accent: #2a2520;
+    --bl-shadow: 0 4px 5px -1px rgba(0, 0, 0, 0.55);
+    --bl-shadow-hover: 0 6px 8px -1px rgba(0, 0, 0, 0.6);
+  }
+  .bl-current { color: var(--bl-active); }
+  .bl-done-banner { color: var(--bl-anchor); }
+  .bl-word-chip { color: var(--bl-anchor); }
+  .bl-toast { color: #ff9c80; }
+  .bl-btn {
+    background: #2a2520;
+    border-color: #d8c9b3;
+    color: #ead8b8;
+  }
+  .bl-btn:hover { background: #3a3128; }
+  .bl-btn--primary:hover { background: #4a3a25; }
+  .bl-modal-card { background: #1f1a16; color: #ead8b8; }
+  .bl-help { border-color: var(--bl-text-soft); color: var(--bl-text-soft); }
+  .bl-help:hover { background: #2a2520; }
+}
+
+@media (max-width: 500px) {
+  .bl-current { font-size: 1.3rem; letter-spacing: 0.14em; }
+  .bl-hex text { font-size: 22px; }
+}

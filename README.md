@@ -28,11 +28,12 @@ Then edit `content/posts/my-new-post.md`. Front matter:
 
 ```yaml
 ---
-title: "Your Post Title"
+title: "Post Title"
 date: 2026-01-11T08:00:00-07:00
 description: "Short description for SEO and previews"
 tags: ["tag1"]
-image: "images/relevant-image.webp"   # optional, relative to static/
+image: "images/relevant-image.webp"  # optional, relative to static/
+series: ["Series Name"]              # optional
 ---
 ```
 

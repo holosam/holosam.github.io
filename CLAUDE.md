@@ -1,32 +1,18 @@
 # CLAUDE.md
 
-This is a personal blog hosted at https://holosam.dev/
+This is a personal blog hosted at https://holosam.dev/, built using Hugo.
 
-## Writing and content
-
-Relevant files:
-- `content/_index.md` is the homepage
-- `content/posts/` has all the posts and are a good reference for my voice and conventions
-- `IDEAS.md` is the staging ground
+## Relevant files
+- `content/_index.md` - homepage
+- `content/posts/` - all content
+- `IDEAS.md` - staging ground for new posts
+- `Makefile` - common commands
 
 ### Conventions
 - **Length** a few hundred words with little padding.
 - **Footnotes** (Hugo native `[^1]` syntax) for tangents, citations, and caveats.
 - **External references**: prefer primary sources, inline-linked.
 - **Image** needed for the OG image - WebP in `static/images/`.
-
-### Front matter
-
-```yaml
----
-title: "Post Title"
-date: 2026-01-11T08:00:00-07:00
-description: "Short description (shown on home page and SEO)"
-tags: ["psychology"]
-image: "images/relevant-image.webp"   # optional, relative to static/
-series: ["Series Name"]            # optional
----
-```
 
 ### Editorial reviews
 Flag honest critiques by line number:
@@ -36,34 +22,25 @@ Flag honest critiques by line number:
 
 Use existing posts as canonical reference for voice. Audience is technical.
 
-## Hugo / build details
+## Getting a branch ready for PR
 
-Read the relevant files when you need more.
+Checklist:
+- **Libraries**: `brew update` and `brew upgrade` to make sure everything is on the latest version.
+  - Update pinned Hugo version
+  - Check if the `hugo-book` theme submodule needs to be updated `git submodule update --init --recursive`
+- **Build** PRs execute `hugo_test_build.yaml`, so make sure these checks pass
+  - Double check pages render correctly. Custom layouts for home page, posts, head, etc override the theme
+- **Images** - make sure images are webp (see `Makefile`). Except for static/banner.png for OG compatibility
 
-### Common commands
-```bash
-make serve            # dev server with drafts
-make build            # production build (--gc --minify)
-make new-post name=x  # scaffold content/posts/x.md
-make compress-image src=static/images/foo.png   # convert to WebP
-make compress-all     # batch convert PNG/JPG in static/images/
-```
+## Browser games
 
-Required tools: Hugo extended (`brew install hugo`), `cwebp` (`brew install webp`).
+Games live at `/games/<slug>/`. Pattern is plain client-side JS, no build step:
 
-### Image workflow
-All post images are WebP. Drop the original PNG/JPG in `static/images/`, run `make compress-image src=...`, delete the original, reference as `![alt](/images/foo.webp)`. The render hook at `layouts/_default/_markup/render-image.html` adds `loading="lazy"` automatically.
-
-Exception: `static/banner.png` stays PNG for Open Graph compatibility.
-
-### Series
-`series: ["Name"]` in front matter groups posts. The partial at `layouts/partials/series-nav.html` renders prev/next nav at the top and bottom of each post in the series.
-
-### Gotchas
-- Hugo version is pinned to **0.160.1 extended** in CI for now - match locally or builds may diverge.
-- Theme `themes/hugo-book/` is a git submodule - after cloning or switching branches, run `git submodule update --init --recursive`.
-- `unsafe: true` markup is enabled, so inline HTML in markdown works.
-- Custom layouts override the theme: home page (`layouts/index.html`), post layout (`layouts/posts/single.html`), head injection (`layouts/partials/docs/inject/head.html` - OG image + JSON-LD).
-
-### Deployment
-PRs run `hugo_test_build.yaml` (build + htmltest link check). Then merge to `main` → `.github/workflows/hugo_deploy.yaml` deploys to GitHub Pages.
+- **Page**: `content/games/<slug>.md` with a `<div id="…"></div>` and one or more `<script src="/js/…">` tags. Front matter is normal post-style.
+- **Logic**: `static/js/<slug>.js`, IIFE-wrapped. Hugo serves `static/` files as-is — no processing.
+- **Layout**: `layouts/games/baseof.html` strips theme chrome (no sidebar, simplified header) for anything under `content/games/`.
+- **Styles**: shared `static/css/games.css`. Prefix per-game classes (`bl-` for Blossom) to keep games isolated.
+- **Daily seed**: hash the local date to seed an RNG (mulberry32 works well). Persist progress to `localStorage` keyed by `<game>-YYYY-MM-DD`.
+- **Word lists**: big dictionaries (>100KB) ship as their own `<script>` that defines a global. `/usr/share/dict/web2` is OK for some root-words but is missing inflections like `began`/`runs`/`played` — use [dwyl/english-words `words_alpha.txt`](https://github.com/dwyl/english-words) for validation. Two-list pattern works well: a **broad validation list** (so players can try anything reasonable) plus a **narrow curated generation list** (so daily boards are made of words real humans recognize). Blossom's curated bank lives at `assets/blossom/word_bank.txt`; `make blossom-words` regenerates `static/js/blossom-words.js`.
+- **Sharing logic with Node CLIs**: wrap generators in a UMD-style `(function(root){…})(typeof window !== 'undefined' ? window : globalThis)` and export via `module.exports` if it exists. A Node script in `scripts/` can then `require()` the same module the browser uses — see `static/js/blossom-gen.js` and `scripts/blossom-solve.js`.
+- **TypeScript**: not used. Hugo can run TS through `js.Build` (esbuild) but it needs sources in `assets/` and a resource-pipeline partial. For one-file games the overhead isn't worth it; JSDoc gives type-checking without the build step.
