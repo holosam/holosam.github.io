@@ -26,8 +26,8 @@ if (isNaN(date)) {
 const board = Gen.generateBoard(Gen.seedForDate(date), window.BLOSSOM_GEN_WORDS);
 
 console.log(`Blossom ${Gen.dateKey(date)}`);
-console.log(`  par:    ${board.par} words`);
-console.log(`  target: ${board.target} tiles`);
+console.log(`  target: ${board.targetWords} words`);
+console.log(`  tiles:  ${board.totalTiles}`);
 console.log(`  chain:  ${board.chain.join(' → ').toUpperCase()}`);
 console.log();
 
