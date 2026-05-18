@@ -32,3 +32,6 @@ compress-all: ## Compress all PNG/JPG images in static/images/ to WebP
 
 clean: ## Remove generated files
 	rm -rf public/ resources/
+
+blossom-words: ## Print today's Blossom answer (or pass date=YYYY-MM-DD)
+	@node scripts/blossom-solve.js $(date)

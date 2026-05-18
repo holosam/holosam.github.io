@@ -1,13 +1,12 @@
 # CLAUDE.md
 
-Guidance for Claude Code when working in this repo. This is a personal blog hosted at https://holosam.dev/
+This is a personal blog hosted at https://holosam.dev/, built using Hugo.
 
-## Writing and content
-
-Relevant files:
-- `content/_index.md` is the homepage
-- `content/posts/` has all the posts and are a good reference for my voice and conventions
-- `IDEAS.md` is the staging ground
+## Relevant files
+- `content/_index.md` - homepage
+- `content/posts/` - all content
+- `IDEAS.md` - staging ground for new posts
+- `Makefile` - common commands
 
 ### Conventions
 - **Length** a few hundred words with little padding.
@@ -15,53 +14,20 @@ Relevant files:
 - **External references**: prefer primary sources, inline-linked.
 - **Image** needed for the OG image - WebP in `static/images/`.
 
-### Front matter
-
-```yaml
----
-title: "Post Title"
-date: 2026-01-11T08:00:00-07:00
-description: "Short description (shown on home page and SEO)"
-tags: ["psychology"]
-image: "images/relevant-image.webp"   # optional, relative to static/
-series: ["My Series Name"]            # optional
----
-```
-
-### Voice
-Existing posts are the canonical reference — voice varies but skews personal, direct, and a little wry. Openings should hook the reader; avoid SaaS/PRD framing.
-
 ### Editorial reviews
-Flag typos, redundancy, and voice slips with line numbers. Be honest about whether a draft reads as embarrassing or fine — softening criticism doesn't help.
+Flag honest critiques by line number:
+- Content: factual accuracy, voice inconsistency
+- Copy issues: typos, redundancies, huge structure
+- Any other concerns
 
-## Hugo / build details
+Use existing posts as canonical reference for voice. Audience is technical.
 
-Read the relevant files when you need more.
+## Getting a branch ready for PR
 
-### Common commands
-```bash
-make serve            # dev server with drafts
-make build            # production build (--gc --minify)
-make new-post name=x  # scaffold content/posts/x.md
-make compress-image src=static/images/foo.png   # convert to WebP
-make compress-all     # batch convert PNG/JPG in static/images/
-```
-
-Required tools: Hugo extended (`brew install hugo`), `cwebp` (`brew install webp`).
-
-### Image workflow
-All post images are WebP. Drop the original PNG/JPG in `static/images/`, run `make compress-image src=...`, delete the original, reference as `![alt](/images/foo.webp)`. The render hook at `layouts/_default/_markup/render-image.html` adds `loading="lazy"` automatically.
-
-Exception: `static/banner.png` stays PNG for Open Graph compatibility.
-
-### Series
-`series: ["Name"]` in front matter groups posts. The partial at `layouts/partials/series-nav.html` renders prev/next nav at the top and bottom of each post in the series.
-
-### Gotchas
-- Hugo version is pinned to **0.160.1 extended** in CI — match locally or builds may diverge.
-- Theme `themes/hugo-book/` is a git submodule — after cloning or switching branches, run `git submodule update --init --recursive`.
-- `unsafe: true` markup is enabled, so inline HTML in markdown works.
-- Custom layouts override the theme: home page (`layouts/index.html`), post layout (`layouts/posts/single.html`), head injection (`layouts/partials/docs/inject/head.html` — OG image + JSON-LD).
-
-### Deployment
-PRs run `hugo_test_build.yaml` (build + htmltest link check). Then merge to `main` → `.github/workflows/hugo_deploy.yaml` deploys to GitHub Pages.
+Checklist:
+- **Libraries**: `brew update` and `brew upgrade` to make sure everything is on the latest version.
+  - Update pinned Hugo version
+  - Check if the `hugo-book` theme submodule needs to be updated `git submodule update --init --recursive`
+- **Build** PRs execute `hugo_test_build.yaml`, so make sure these checks pass
+  - Double check pages render correctly. Custom layouts for home page, posts, head, etc override the theme
+- **Images** - make sure images are webp (see `Makefile`). Except for static/banner.png for OG compatibility

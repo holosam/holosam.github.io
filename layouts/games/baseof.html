@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="{{ default .Site.Language.Name .Site.Language.Locale }}">
+<head>
+  {{ partial "docs/html-head" . }}
+  {{ partial "docs/inject/head" . }}
+  <link rel="stylesheet" href="/css/games.css">
+</head>
+<body class="game-body">
+  <header class="game-header">
+    <a href="/" class="game-back">← holosam.dev</a>
+    <span class="game-header-title">{{ .Title }}</span>
+  </header>
+  <main class="game-main">
+    {{ block "main" . }}{{ end }}
+  </main>
+</body>
+</html>
