@@ -6,7 +6,7 @@ tags: ["projects"]
 image: "images/blossom.webp"
 ---
 
-[Play Blossom here.](/games/blossom)
+[Play Blossom here.](/games/blossom/)
 
 <!--more-->
 
