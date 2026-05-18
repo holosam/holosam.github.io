@@ -1,5 +1,5 @@
 ---
-title: "Worldforge: A Sci-Fi World-Building Sidekick"
+title: "Worldforge"
 date: 2026-04-26T20:56:05-07:00
 description: "Lore tracker for sci-fi worldbuilding."
 tags: ["projects"]
