@@ -79,6 +79,12 @@ body.game-body {
   color: var(--bl-text-soft);
 }
 
+.bl-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
 .bl-help {
   border: 1px solid var(--bl-text-soft);
   background: transparent;
@@ -93,6 +99,15 @@ body.game-body {
 }
 
 .bl-help:hover { background: var(--bl-bg-accent); }
+
+.bl-icon-btn {
+  padding: 0.3rem 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bl-icon-btn svg { display: block; }
 
 .bl-words {
   width: 100%;
@@ -168,14 +183,16 @@ body.game-body {
   justify-content: center;
 }
 
-/* Aspect-locked wrapper: padding-bottom percentage (set inline from JS) pins
-   the box to a fixed width:height ratio. The SVG fills it absolutely, so
-   nothing inside the SVG (animations, lifted tiles, overflow) can ever
-   change the wrapper's box dimensions. */
+/* Aspect-locked wrapper. JS sets --bl-aspect to vbW/vbH. Width is bounded by
+   (a) 640px desktop cap, (b) the container, and (c) viewport height — the
+   third constraint is what keeps the whole game above the fold on a 13"
+   laptop. The aspect-ratio property then derives height from width, so the
+   SVG inside scales correctly without changing the box. */
 .bl-grid-aspect {
   position: relative;
-  width: 100%;
-  max-width: 640px;
+  width: min(640px, 100%, calc((100vh - 280px) * var(--bl-aspect, 1)));
+  aspect-ratio: var(--bl-aspect, 1);
+  margin: 0 auto;
 }
 
 .bl-grid {

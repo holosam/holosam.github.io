@@ -40,9 +40,9 @@ During the design process for the game, I gained a further appreciation for the 
 3. An application that fits neatly on a mobile screen, with a standardized and familiar pattern.
 
 On these dimensions, I would grade myself:
-1. Balance: 2/5. The randomness in the word generation creates different levels of challenge per day and doesn't always strike the right balance. I feel that the game is particularly challenging unless you find the "right" answer (the words used to generate the board), so it doesn't reward casual gameplay very well.
-2. Scoring: 4/5. I like that the scoring method gives you incrementally better scores with fewer words, which encourages retrying for an even better score as you gather more information.
-3. Pattern: 3/5. The feel of playing the game is the same day over day, which is good, but the shape of the board can vary quite a bit so it doesn't always neatly fit on mobile.
+1. **Balance: 2/5.** The randomness in the word generation creates very different levels of difficulty per day and doesn't always strike the right balance. I feel it's often too challenging to make incremental progress at beginning, and instead depends on you making a breakthrough to find the "right" answer (the words used to generate the board). So it doesn't reward casual gameplay very well.
+2. **Scoring: 3/5.** I like that the scoring method gives you incrementally better scores with fewer words, which encourages retrying for an even better score as you gather more information. But even before filling the board, it would be nice to still reward partial completion, like [Connections](https://www.nytimes.com/games/connections) does.
+3. **Pattern: 4/5.** The feel of playing the game is the same day over day which is good. The shape of the board can vary a bit so it doesn't always neatly fit on mobile, but this is rare.
 
 ## Future Ideas
 
