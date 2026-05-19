@@ -44,7 +44,7 @@ During the design process for the game, I gained a further appreciation for the 
 On these dimensions, I would grade myself:
 1. **Balance: 2/5.** The randomness in the word generation creates very different levels of difficulty per day and doesn't always strike the right balance. I feel it's often too challenging to make incremental progress at the beginning, and instead depends on you making a breakthrough to find the "right" answer (the words used to generate the board). So it doesn't reward casual gameplay very well.
 2. **Scoring: 3/5.** I like that the scoring method gives you incrementally better scores with fewer words, which encourages retrying for an even better score as you gather more information. But even before filling the board, it would be nice to still reward partial completion, like [Connections](https://www.nytimes.com/games/connections) does.
-3. **Pattern: 4/5.** The form factor and feel of the game is reasonble day over day. However, more consistency in game board generation and a palette that better focuses the eye on the current letter options would help this score.
+3. **Pattern: 4/5.** The feel of the game is consistent day over day, but I docked myself a point because the randomness in the board can make it render differently on certain screen sizes, and the design/palatte could better focus the eye on current letter options.
 
 ## Future Ideas
 
@@ -57,7 +57,8 @@ Honestly, I believe a dedicated editor selecting words and laying out a pattern 
 Aside from that, I'd want to see how other people like the game and what frustrations or ideas they have. Nearly every successful game has a story of hours of beta testers and updates from user feedback. If you've got any thoughts, let me know!
 
 _Changelog_
-- May 18th: added a hint button, updated dictionary to tune difficulty, adaptive window sizing
+- May 18th - added a hint button, updated dictionary to tune difficulty, adaptive window sizing
+- May 19th - changed Deselect button to Delete button
 
 [^1]: The game was originally hosted on a cloud provider with a persistent backend so she could view aggregated stats over time. This is now just on a static site with my other projects, more as a demo than anything else.
 
