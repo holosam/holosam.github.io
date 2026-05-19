@@ -12,7 +12,9 @@ image: "images/blossom.webp"
 
 ## Background
 
-My mom and I have always shared an appreciation for word games like Words with Friends in its heyday, and more recently the New York Times games. For Christmas 2023, I wanted to create a daily word game for her. The original cloud-hosted version[^1] went into disrepair, so this post represents both a relaunch of the game and a bit of a retrospective on how it turned out.
+My mom and I have always shared an appreciation for word games like Words with Friends in its heyday, and more recently the New York Times games. For Christmas 2023, I wanted to create a daily word game for her, and sent her the URL for Blossom.
+
+This original cloud-hosted version[^1] went into disrepair, so this post represents both a relaunch of the game and a bit of a retrospective on how it turned out.
 
 The concept for Blossom grew out of my frustrations with [NYT's Letter Boxed](https://www.nytimes.com/puzzles/letter-boxed). I liked their concept, but the options for the next letter to pick are _not_ adjacent to the letter you just picked, which always hurt my brain. Unlike with [Spelling Bee](https://www.nytimes.com/puzzles/spelling-bee), I never felt like I could get into a flow with Letter Boxed.
 
@@ -27,7 +29,7 @@ The Blossom game board is a grid of hexagonal tiles that are newly generated eac
 ![In progress game of Blossom](/images/blossom.webp "Blossom")
 
 You're scored by how many words it takes to fill the board, aiming for the lowest score possible. The target score is usually only achievable by linking together the words that were used to create the game board. I personally find it pretty difficult to see the solution right away, so there are a couple different ways I enjoy playing:
-1. **Wander** - enter in any words that you see, taking as many turns as necessary to fill out the whole board. This helps create a bit of a mental model for what consonants and vowels are chain-able.
+1. **Wander** - enter any words that you see, taking as many turns as necessary to fill out the whole board. This helps create a bit of a mental model for what consonants and vowels are chain-able.
 2. **Bird's-eye** - look at the entire board first and see if you can spot words further away from the starting tile. If you have a good word to aim for, that "shrinks" the search space so you only have to get from the starting letter to that target word.
 
 Although new words are randomly selected each day, there is some specific logic to how letters are placed on the board, so anyone willing to peek at the [source code](https://github.com/holosam/holosam.github.io) for the game will get a hint for solving the puzzle.
@@ -40,9 +42,9 @@ During the design process for the game, I gained a further appreciation for the 
 3. An application that fits neatly on a mobile screen, with a standardized and familiar pattern.
 
 On these dimensions, I would grade myself:
-1. **Balance: 2/5.** The randomness in the word generation creates very different levels of difficulty per day and doesn't always strike the right balance. I feel it's often too challenging to make incremental progress at beginning, and instead depends on you making a breakthrough to find the "right" answer (the words used to generate the board). So it doesn't reward casual gameplay very well.
+1. **Balance: 2/5.** The randomness in the word generation creates very different levels of difficulty per day and doesn't always strike the right balance. I feel it's often too challenging to make incremental progress at the beginning, and instead depends on you making a breakthrough to find the "right" answer (the words used to generate the board). So it doesn't reward casual gameplay very well.
 2. **Scoring: 3/5.** I like that the scoring method gives you incrementally better scores with fewer words, which encourages retrying for an even better score as you gather more information. But even before filling the board, it would be nice to still reward partial completion, like [Connections](https://www.nytimes.com/games/connections) does.
-3. **Pattern: 4/5.** The feel of playing the game is the same day over day which is good. The shape of the board can vary a bit so it doesn't always neatly fit on mobile, but this is rare.
+3. **Pattern: 4/5.** The form factor and feel of the game is reasonble day over day. However, more consistency in game board generation and a palette that better focuses the eye on the current letter options would help this score.
 
 ## Future Ideas
 
@@ -53,6 +55,9 @@ The main opportunity for improvement is how the game board is generated each day
 Honestly, I believe a dedicated editor selecting words and laying out a pattern every day would make the game far more delightful. This is likely the main answer to improving all three design scores above - a human touch.[^2] I had an interesting idea to try a Monte Carlo search to simulate thousands of potential game boards, score the quality of each, and pick the best for the game that day. But even still that requires the "human touch" of knowing what a really good game feels like.
 
 Aside from that, I'd want to see how other people like the game and what frustrations or ideas they have. Nearly every successful game has a story of hours of beta testers and updates from user feedback. If you've got any thoughts, let me know!
+
+_Changelog_
+- May 18th: added a hint button, updated dictionary to tune difficulty, adaptive window sizing
 
 [^1]: The game was originally hosted on a cloud provider with a persistent backend so she could view aggregated stats over time. This is now just on a static site with my other projects, more as a demo than anything else.
 
