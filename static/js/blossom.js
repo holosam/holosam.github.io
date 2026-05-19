@@ -71,6 +71,7 @@
             <li>Start at the highlighted tile. Tap adjacent tiles to spell a word, then hit Enter. You can reuse tiles with a word.</li>
             <li>Each new word begins where the last one ended.</li>
             <li>Use every tile to win. Use ${BOARD.targetWords} or fewer if possible.</li>
+            <li>Stuck? Tap the 💡 for a hint.</li>
           </ol>
         </div>
       </div>
@@ -116,13 +117,13 @@
     const vbH = (maxY - minY) + pad * 2;
     svg.setAttribute('viewBox', `${vbX} ${vbY} ${vbW} ${vbH}`);
     svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-    // Lock the grid's box size via the padding-bottom aspect-ratio trick.
-    // The aspect-locked wrapper has a fixed width:height ratio regardless
-    // of content; the SVG fills it absolutely. This means animation
-    // transforms inside the SVG (which can overflow on overflow:visible)
-    // cannot push the grid's box dimensions around.
+    // Hand the wrapper the aspect ratio so CSS can size the grid against
+    // both viewport width AND viewport height (see games.css). Animation
+    // transforms inside the SVG can overflow without changing the box,
+    // because aspect-ratio fixes the box dimensions independently of
+    // content.
     const aspect = document.getElementById('bl-grid-aspect');
-    aspect.style.paddingBottom = `${(vbH / vbW) * 100}%`;
+    aspect.style.setProperty('--bl-aspect', `${vbW / vbH}`);
 
     // Render top-down so a lifted hex always paints over the row above it.
     // (SVG has no z-index; later siblings paint on top.)
@@ -276,7 +277,7 @@
     if (state.done) return;
     if (selection.length < 3) { toast('Words must be at least 3 letters'); shake(); return; }
     const word = currentWord();
-    if (!VALID.has(word)) { toast(`"${word.toUpperCase()}" isn't a word`); shake(); return; }
+    if (!VALID.has(word)) { toast(`"${word.toUpperCase()}" not in dictionary`); shake(); return; }
     if (state.words.some(w => w.word === word)) { toast('Already used'); shake(); return; }
 
     const cells = selection.slice();
@@ -360,7 +361,7 @@
     if (state.done) return;
     const h = findHint();
     if (!h) { toast('No hints available'); return; }
-    toast(`Hint: ${h.toUpperCase()}`, 3500);
+    toast(`Hint: try ${h.toUpperCase()}`, 3500);
   }
 
   function restart() {
