@@ -79,6 +79,12 @@ body.game-body {
   color: var(--bl-text-soft);
 }
 
+.bl-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
 .bl-help {
   border: 1px solid var(--bl-text-soft);
   background: transparent;
@@ -93,6 +99,15 @@ body.game-body {
 }
 
 .bl-help:hover { background: var(--bl-bg-accent); }
+
+.bl-icon-btn {
+  padding: 0.3rem 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bl-icon-btn svg { display: block; }
 
 .bl-words {
   width: 100%;

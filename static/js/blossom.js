@@ -39,7 +39,16 @@
     <div class="bl-container">
       <div class="bl-header-row">
         <div class="bl-date">${TODAY_KEY}</div>
-        <button class="bl-help" id="bl-help-btn">How to play</button>
+        <div class="bl-header-actions">
+          <button class="bl-help bl-icon-btn" id="bl-hint-btn" aria-label="Hint" title="Hint">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9 18h6"/>
+              <path d="M10 22h4"/>
+              <path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V18h6v-1.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2z"/>
+            </svg>
+          </button>
+          <button class="bl-help" id="bl-help-btn">How to play</button>
+        </div>
       </div>
       <div class="bl-words" id="bl-words"></div>
       <div class="bl-current" id="bl-current">&nbsp;</div>
@@ -59,12 +68,9 @@
           <button class="bl-modal-close" id="bl-modal-close" aria-label="Close">×</button>
           <h2>How to play</h2>
           <ol>
-            <li>Chain words together to fill the grid.</li>
-            <li>Start at the highlighted letter.</li>
-            <li>Tap adjacent tiles to spell a complete word. Letters can be reused.</li>
-            <li>The last letter of one word is the first letter of the next.</li>
-            <li>Your score is the number of tiles used. Target: ${BOARD.targetWords} words.</li>
-            <li>Two stars if you hit the target, one star for completing over.</li>
+            <li>Start at the highlighted tile. Tap adjacent tiles to spell a word, then hit Enter. You can reuse tiles with a word.</li>
+            <li>Each new word begins where the last one ended.</li>
+            <li>Use every tile to win. Use ${BOARD.targetWords} or fewer if possible.</li>
           </ol>
         </div>
       </div>
@@ -250,12 +256,12 @@
 
   // ─── Toast ─────────────────────────────────────────────────────────────────
   let toastTimer;
-  function toast(msg) {
+  function toast(msg, ms = 1600) {
     const el = document.getElementById('bl-toast');
     el.textContent = msg;
     el.classList.add('bl-toast--on');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.remove('bl-toast--on'), 1600);
+    toastTimer = setTimeout(() => el.classList.remove('bl-toast--on'), ms);
   }
 
   function shake() {
@@ -334,6 +340,29 @@
     render();
   }
 
+  // Pick a chain word the player hasn't entered yet. Prefer one that starts
+  // at the current active letter (so it's playable from where they stand);
+  // fall back to any remaining chain word so they can see the intended path
+  // even if they need to backtrack.
+  function findHint() {
+    const entered = new Set(state.words.map(w => w.word));
+    const activeLetter = letterAt(state.active);
+    for (const w of BOARD.chain) {
+      if (!entered.has(w) && w[0] === activeLetter) return w;
+    }
+    for (const w of BOARD.chain) {
+      if (!entered.has(w)) return w;
+    }
+    return null;
+  }
+
+  function showHint() {
+    if (state.done) return;
+    const h = findHint();
+    if (!h) { toast('No hints available'); return; }
+    toast(`Hint: ${h.toUpperCase()}`, 3500);
+  }
+
   function restart() {
     state = {
       words: [],
@@ -353,6 +382,7 @@
   document.getElementById('bl-enter').addEventListener('click', submit);
   document.getElementById('bl-deselect').addEventListener('click', deselect);
   document.getElementById('bl-restart').addEventListener('click', restart);
+  document.getElementById('bl-hint-btn').addEventListener('click', showHint);
 
   const modal = document.getElementById('bl-modal');
   document.getElementById('bl-help-btn').addEventListener('click', () => modal.hidden = false);
