@@ -8,28 +8,6 @@ body.game-body {
   color: var(--body-font-color, #000);
 }
 
-.game-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.6rem 1.25rem;
-  border-bottom: 1px solid var(--gray-200, #d1d5db);
-  font-size: 0.9rem;
-}
-
-.game-back {
-  text-decoration: none;
-  color: var(--color-link, #0275d8);
-  white-space: nowrap;
-}
-
-.game-header-title {
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  font-size: 1.1rem;
-}
-
 .game-main {
   flex: 1;
   display: flex;
@@ -157,19 +135,6 @@ body.game-body {
 }
 
 .bl-current:empty::before { content: '\00a0'; }
-
-.bl-shake {
-  animation: bl-shake 0.45s ease;
-  color: #d33;
-}
-
-@keyframes bl-shake {
-  0%,100% { transform: translateX(0); }
-  20% { transform: translateX(-6px); }
-  40% { transform: translateX(6px); }
-  60% { transform: translateX(-4px); }
-  80% { transform: translateX(4px); }
-}
 
 .bl-done-banner {
   color: var(--bl-anchor);
