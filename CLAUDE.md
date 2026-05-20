@@ -30,7 +30,7 @@ Use existing posts as canonical reference for voice. Audience is technical.
 
 ## Getting a branch ready for PR
 
-Make sure we run through this checklist:
+Make sure we run through this checklist before merging:
 - **Libraries**: `brew update` and `brew upgrade` to make sure everything is on the latest version.
   - Update pinned Hugo version
   - Check if the `hugo-book` theme submodule needs to be updated `git submodule update --init --recursive`

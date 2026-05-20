@@ -10,3 +10,6 @@
 
 IDEAS.md
 /tmp/
+
+# Blossom: raw SCOWL dump is a build input, re-fetched via `make blossom-words-fetch`
+/assets/blossom/scowl-60.txt
