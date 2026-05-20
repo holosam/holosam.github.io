@@ -47,17 +47,17 @@
     } catch {}
   }
 
-  // Cross-day records, not date-scoped. bestDelta is words-minus-par; lower
-  // is better. Stored as golf score rather than raw word count because boards
-  // vary in par, so raw counts aren't comparable day to day.
-  const RECORDS_KEY = "blossom-records-v1";
+  // Cross-day records, not date-scoped. bestWords is the lowest word count
+  // across any completed game; maxTiles is the most tiles ever covered.
+  // Storage version bumped to v2 when the field shape changed.
+  const RECORDS_KEY = "blossom-records-v2";
   function loadRecords() {
     try {
       const r = JSON.parse(localStorage.getItem(RECORDS_KEY) || "null");
       if (r && typeof r === "object")
-        return { bestDelta: null, maxTiles: 0, ...r };
+        return { bestWords: null, maxTiles: 0, ...r };
     } catch {}
-    return { bestDelta: null, maxTiles: 0 };
+    return { bestWords: null, maxTiles: 0 };
   }
   let records = loadRecords();
   function saveRecords() {
@@ -72,16 +72,20 @@
       changed = true;
     }
     if (state.done && tilesUsed >= BOARD.totalTiles) {
-      const delta = state.words.length - BOARD.targetWords;
-      if (records.bestDelta === null || delta < records.bestDelta) {
-        records.bestDelta = delta;
+      if (
+        records.bestWords === null ||
+        state.words.length < records.bestWords
+      ) {
+        records.bestWords = state.words.length;
         changed = true;
       }
     }
     if (changed) saveRecords();
   }
+  // Empty string for an exactly-on-target finish — callsites should append
+  // a separator only when the label is non-empty.
   function deltaLabel(d) {
-    return d === 0 ? "par" : d < 0 ? `−${-d}` : `+${d}`;
+    return d < 0 ? `−${-d}` : d > 0 ? `+${d}` : "";
   }
 
   // ─── DOM scaffolding ───────────────────────────────────────────────────────
@@ -308,13 +312,13 @@
     state.words.forEach((w) => w.cells.forEach((c) => used.add(c)));
     const tilesUsed = used.size;
     // Status line — single row, with records folded inline:
-    //   "Target: 7 words [(current: 3[, best: par])] · 13/30 tiles [(best: 13)]"
+    //   "Target: 7 words [(current: 3[, best: 5])] · 13/30 tiles [(best: 13)]"
     // Tile-best is only shown until the first completion; after that, the
-    // golf-best lives in the words parens and the tile-best is implied.
+    // word-count best lives in the words parens and the tile-best is implied.
     const wordCount = state.words.length;
     const wordsExtras = [
       wordCount > 0 ? `current: ${wordCount}` : "",
-      records.bestDelta !== null ? `best: ${deltaLabel(records.bestDelta)}` : "",
+      records.bestWords !== null ? `best: ${records.bestWords}` : "",
     ]
       .filter(Boolean)
       .join(", ");
@@ -324,7 +328,7 @@
     const tilesPart =
       wordCount > 0
         ? `${tilesUsed}/${BOARD.totalTiles} tiles` +
-          (records.bestDelta === null && records.maxTiles > 0
+          (records.bestWords === null && records.maxTiles > 0
             ? ` (best: ${records.maxTiles})`
             : "")
         : "";
@@ -337,13 +341,13 @@
       </div>
     `;
 
-    // Done banner — distinguish a win from a bust (too many words past par).
+    // Done banner — distinguish a win from a bust (too many words past target).
     if (state.done) {
-      const delta = wordCount - BOARD.targetWords;
+      const label = deltaLabel(wordCount - BOARD.targetWords);
       const won = tilesUsed >= BOARD.totalTiles;
       cw.innerHTML = won
-        ? `<span class="bl-done-banner">Complete in ${wordCount} words · ${deltaLabel(delta)}</span>`
-        : `<span class="bl-done-banner">Busted at ${deltaLabel(delta)} · ${tilesUsed}/${BOARD.totalTiles} tiles</span>`;
+        ? `<span class="bl-done-banner">Complete in ${wordCount} words${label ? ` · ${label}` : ""}</span>`
+        : `<span class="bl-done-banner">Busted at ${label} · ${tilesUsed}/${BOARD.totalTiles} tiles</span>`;
     }
   }
 
@@ -514,11 +518,13 @@
     );
   }
 
-  // Build the shareable score string. Always shows a par-slot bouquet:
-  //   🌸 = a word entered  (counts up to par)
-  //   ⚪ = a par slot still open  (mid-game or bust — replaced by 🏆 on a win)
-  //   🏆 = beat par by this many words  (completed under par — the rare brag)
-  //   🥀 = a word past par  (overshoot)
+  // Build the shareable score string. Reflects the *current* game state,
+  // NOT the player's best for today — so if they restart, the previous
+  // attempt is gone from the share. Always shows a target-slot bouquet:
+  //   🌸 = a word entered  (counts up to target)
+  //   ⚪ = a target slot still open  (mid-game or bust — replaced by 🏆 on a win)
+  //   🏆 = beat target by this many words  (under-target win — the rare brag)
+  //   🥀 = a word past target  (overshoot)
   // Non-winning states append the tile fraction so the receiver can tell
   // whether you actually finished the board.
   function shareText() {
@@ -528,18 +534,19 @@
     ]).size;
     const won = state.done && tilesUsed >= BOARD.totalTiles;
     const used = state.words.length;
-    const par = BOARD.targetWords;
-    const delta = used - par;
-    const blooms = Math.min(used, par);
-    const filler = Math.max(0, par - used);
-    const wilts = Math.max(0, used - par);
+    const target = BOARD.targetWords;
+    const label = deltaLabel(used - target);
+    const blooms = Math.min(used, target);
+    const filler = Math.max(0, target - used);
+    const wilts = Math.max(0, used - target);
     const fillerChar = won ? "🏆" : "⚪";
     const bouquet =
       "🌸".repeat(blooms) + fillerChar.repeat(filler) + "🥀".repeat(wilts);
     let line;
     if (won) {
-      // Trophies speak for themselves; only label par / over-par.
-      line = delta < 0 ? bouquet : `${bouquet} ${deltaLabel(delta)}`;
+      // Trophies, an exact match, and over-target wilts speak for themselves;
+      // append the label only when there's actually something to label.
+      line = label ? `${bouquet} ${label}` : bouquet;
     } else {
       line = `${bouquet} ${tilesUsed}/${BOARD.totalTiles} tiles`;
     }
