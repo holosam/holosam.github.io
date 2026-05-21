@@ -346,7 +346,7 @@
       const label = deltaLabel(wordCount - BOARD.targetWords);
       const won = tilesUsed >= BOARD.totalTiles;
       cw.innerHTML = won
-        ? `<span class="bl-done-banner">Complete in ${wordCount} words${label ? ` · ${label}` : ""}</span>`
+        ? `<span class="bl-done-banner">Complete in ${wordCount} words</span>`
         : `<span class="bl-done-banner">Busted at ${label} · ${tilesUsed}/${BOARD.totalTiles} tiles</span>`;
     }
   }
