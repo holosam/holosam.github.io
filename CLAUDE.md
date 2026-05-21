@@ -30,6 +30,8 @@ Use existing posts as canonical reference for voice. Audience is technical.
 
 ## Getting a branch ready for PR
 
+I will test the changes locally using `make serve`.
+
 Make sure we run through this checklist before merging:
 - **Libraries**: `brew update` and `brew upgrade` to make sure everything is on the latest version.
   - Update pinned Hugo version

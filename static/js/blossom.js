@@ -136,10 +136,10 @@
           <button class="bl-modal-close" id="bl-modal-close" aria-label="Close">×</button>
           <h2>How to play</h2>
           <ol>
-            <li>Start at the highlighted tile. Tap adjacent tiles to spell a word, then hit Enter. You can reuse tiles within a word.</li>
-            <li>Each new word begins where the last one ended.</li>
-            <li>Use every tile to win. Try to use ${BOARD.targetWords} or fewer words.</li>
-            <li>Stuck? Tap the 💡 for a hint.</li>
+            <li>Start at the highlighted tile. Tap adjacent tiles to spell a word, then hit Enter. Each new word begins where the last one ended.</li>
+            <li>You can reuse tiles at any time, either within a word or from previous words.</li>
+            <li>Use every tile to win. For extra points, try to use ${BOARD.targetWords} (or fewer!) words.</li>
+            <li>The Delete button undoes one letter. If you're stuck, tap 💡 for a hint.</li>
           </ol>
         </div>
       </div>
@@ -471,18 +471,13 @@
     render();
   }
 
-  // Pick a chain word the player hasn't entered yet. Prefer one that starts
-  // at the current active letter (so it's playable from where they stand);
-  // fall back to any remaining chain word so they can see the intended path
-  // even if they need to backtrack.
+  // Reveal the next word in the intended chain by *chain position* — i.e. the
+  // earliest chain word the player hasn't entered. Deliberately ignores the
+  // current active letter: matching by letter would jump to whatever chain
+  // word fits where the player happens to stand, which can be a word deep in
+  // the chain they can't build toward because they skipped the connectors.
   function findHint() {
     const entered = new Set(state.words.map((w) => w.word));
-    const activeLetter = letterAt(state.active);
-    for (let i = 0; i < BOARD.chain.length; i++) {
-      const w = BOARD.chain[i];
-      if (!entered.has(w) && w[0] === activeLetter)
-        return { word: w, index: i };
-    }
     for (let i = 0; i < BOARD.chain.length; i++) {
       const w = BOARD.chain[i];
       if (!entered.has(w)) return { word: w, index: i };
