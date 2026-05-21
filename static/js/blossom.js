@@ -8,7 +8,7 @@
 
   // Defensive caps — keep the game from getting into absurd states.
   const MAX_WORD_LEN = 15; // longest a single selection can grow
-  const BUST_DELTA = 6; // words over par before the game ends in a bust
+  const MAX_OVER_TARGET = 6; // words over par before the game ends in a bust
 
   // ─── Today's board ─────────────────────────────────────────────────────────
   const TODAY = new Date();
@@ -81,11 +81,6 @@
       }
     }
     if (changed) saveRecords();
-  }
-  // Empty string for an exactly-on-target finish — callsites should append
-  // a separator only when the label is non-empty.
-  function deltaLabel(d) {
-    return d < 0 ? `−${-d}` : d > 0 ? `+${d}` : "";
   }
 
   // ─── DOM scaffolding ───────────────────────────────────────────────────────
@@ -341,13 +336,12 @@
       </div>
     `;
 
-    // Done banner — distinguish a win from a bust (too many words past target).
+    // Done banner — distinguish a win from running out of words.
     if (state.done) {
-      const label = deltaLabel(wordCount - BOARD.targetWords);
       const won = tilesUsed >= BOARD.totalTiles;
       cw.innerHTML = won
         ? `<span class="bl-done-banner">Complete in ${wordCount} words</span>`
-        : `<span class="bl-done-banner">Busted at ${label} · ${tilesUsed}/${BOARD.totalTiles} tiles</span>`;
+        : `<span class="bl-done-banner">Out of words at ${tilesUsed}/${BOARD.totalTiles} tiles — Restart to try again</span>`;
     }
   }
 
@@ -383,10 +377,10 @@
     state.active = cells[cells.length - 1];
     selection = [state.active];
 
-    // Done state: either tiles filled (win) or too many words past par (bust).
+    // Done state: either tiles filled (win) or too many words past target.
     const won = state.used.length >= BOARD.totalTiles;
-    const busted = state.words.length >= BOARD.targetWords + BUST_DELTA;
-    if (won || busted) state.done = true;
+    const overLimit = state.words.length >= BOARD.targetWords + MAX_OVER_TARGET;
+    if (won || overLimit) state.done = true;
     updateRecords(state.used.length);
     save();
     render();
@@ -537,7 +531,7 @@
     const bouquet =
       "🌸".repeat(blooms) + fillerChar.repeat(filler) + "🥀".repeat(wilts);
     // The bouquet already encodes the score; a win is just the flowers, while
-    // unfinished/busted games still need the tile fraction to show progress.
+    // unfinished games still need the tile fraction to show progress.
     const line = won
       ? bouquet
       : `${bouquet} ${tilesUsed}/${BOARD.totalTiles} tiles`;
