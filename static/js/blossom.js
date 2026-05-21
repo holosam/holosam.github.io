@@ -530,21 +530,17 @@
     const won = state.done && tilesUsed >= BOARD.totalTiles;
     const used = state.words.length;
     const target = BOARD.targetWords;
-    const label = deltaLabel(used - target);
     const blooms = Math.min(used, target);
     const filler = Math.max(0, target - used);
     const wilts = Math.max(0, used - target);
     const fillerChar = won ? "🏆" : "⚪";
     const bouquet =
       "🌸".repeat(blooms) + fillerChar.repeat(filler) + "🥀".repeat(wilts);
-    let line;
-    if (won) {
-      // Trophies, an exact match, and over-target wilts speak for themselves;
-      // append the label only when there's actually something to label.
-      line = label ? `${bouquet} ${label}` : bouquet;
-    } else {
-      line = `${bouquet} ${tilesUsed}/${BOARD.totalTiles} tiles`;
-    }
+    // The bouquet already encodes the score; a win is just the flowers, while
+    // unfinished/busted games still need the tile fraction to show progress.
+    const line = won
+      ? bouquet
+      : `${bouquet} ${tilesUsed}/${BOARD.totalTiles} tiles`;
     return `Blossom ${TODAY_KEY}\n${line}`;
   }
 
