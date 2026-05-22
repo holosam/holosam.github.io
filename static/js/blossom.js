@@ -8,7 +8,7 @@
 
   // Defensive caps — keep the game from getting into absurd states.
   const MAX_WORD_LEN = 15; // longest a single selection can grow
-  const BUST_DELTA = 6; // words over par before the game ends in a bust
+  const WORD_CAP_OVER_TARGET = 20; // hard ceiling on words past target — an anti-abuse guard, not a fail state
 
   // ─── Today's board ─────────────────────────────────────────────────────────
   const TODAY = new Date();
@@ -17,6 +17,12 @@
   // cells that no longer exist on the new board) is automatically discarded.
   const STORAGE_KEY = "blossom-v2-" + TODAY_KEY;
   const BOARD = generateBoard(seedForDate(TODAY), window.BLOSSOM_GEN_WORDS);
+  // The single daily hint: a longest word in the solution chain. Revealing it
+  // again tells the player nothing new, so it's naturally one hint per day.
+  const LONGEST_WORD = BOARD.chain.reduce(
+    (a, b) => (b.length > a.length ? b : a),
+    "",
+  );
 
   function loadState() {
     try {
@@ -52,12 +58,22 @@
   // Storage version bumped to v2 when the field shape changed.
   const RECORDS_KEY = "blossom-records-v2";
   function loadRecords() {
+    const defaults = {
+      bestWords: null,
+      maxTiles: 0,
+      streak: 0,
+      lastWinKey: null,
+    };
     try {
       const r = JSON.parse(localStorage.getItem(RECORDS_KEY) || "null");
-      if (r && typeof r === "object")
-        return { bestWords: null, maxTiles: 0, ...r };
+      if (r && typeof r === "object") return { ...defaults, ...r };
     } catch {}
-    return { bestWords: null, maxTiles: 0 };
+    return { ...defaults };
+  }
+  // The date key for the day before `key` (YYYY-MM-DD), for streak continuity.
+  function prevDateKey(key) {
+    const [y, m, d] = key.split("-").map(Number);
+    return dateKey(new Date(y, m - 1, d - 1));
   }
   let records = loadRecords();
   function saveRecords() {
@@ -79,13 +95,18 @@
         records.bestWords = state.words.length;
         changed = true;
       }
+      // Win streak: extend if yesterday was also a win, else start fresh.
+      // Guard on lastWinKey so re-winning the same day can't double-count.
+      if (records.lastWinKey !== TODAY_KEY) {
+        records.streak =
+          records.lastWinKey === prevDateKey(TODAY_KEY)
+            ? records.streak + 1
+            : 1;
+        records.lastWinKey = TODAY_KEY;
+        changed = true;
+      }
     }
     if (changed) saveRecords();
-  }
-  // Empty string for an exactly-on-target finish — callsites should append
-  // a separator only when the label is non-empty.
-  function deltaLabel(d) {
-    return d < 0 ? `−${-d}` : d > 0 ? `+${d}` : "";
   }
 
   // ─── DOM scaffolding ───────────────────────────────────────────────────────
@@ -136,11 +157,12 @@
           <button class="bl-modal-close" id="bl-modal-close" aria-label="Close">×</button>
           <h2>How to play</h2>
           <ol>
-            <li>Start at the highlighted tile. Tap adjacent tiles to spell a word, then hit Enter. You can reuse tiles within a word.</li>
-            <li>Each new word begins where the last one ended.</li>
-            <li>Use every tile to win. Try to use ${BOARD.targetWords} or fewer words.</li>
-            <li>Stuck? Tap the 💡 for a hint.</li>
+            <li>Start at the highlighted tile. Tap adjacent tiles to spell a word, then hit Enter. Each new word begins where the last one ended.</li>
+            <li>You can reuse tiles at any time, either within a word or from previous words.</li>
+            <li>Use every tile to win. For extra points, try to use ${BOARD.targetWords} (or fewer) words.</li>
+            <li>The Delete button undoes one letter. If you're stuck, tap 💡 for a hint.</li>
           </ol>
+          <p class="bl-modal-foot">The board resets at midnight, so come back tomorrow to play a new one!</p>
         </div>
       </div>
     </div>
@@ -341,13 +363,18 @@
       </div>
     `;
 
-    // Done banner — distinguish a win from a bust (too many words past target).
+    // Done banner — a win is the only end state now. (A pre-change stale state
+    // could be done-but-unfinished; fall back to a neutral message.)
     if (state.done) {
-      const label = deltaLabel(wordCount - BOARD.targetWords);
       const won = tilesUsed >= BOARD.totalTiles;
-      cw.innerHTML = won
-        ? `<span class="bl-done-banner">Complete in ${wordCount} words${label ? ` · ${label}` : ""}</span>`
-        : `<span class="bl-done-banner">Busted at ${label} · ${tilesUsed}/${BOARD.totalTiles} tiles</span>`;
+      const text = won
+        ? `Complete in ${wordCount} words`
+        : `Round over — ${tilesUsed}/${BOARD.totalTiles} tiles`;
+      const streakBit =
+        records.streak > 0 ? ` · 🔥 ${records.streak} day streak` : "";
+      cw.innerHTML = `<span class="bl-done-banner">${text}${streakBit}<button type="button" class="bl-banner-share" id="bl-banner-share">Share</button></span>`;
+      const sb = document.getElementById("bl-banner-share");
+      if (sb) sb.addEventListener("click", share);
     }
   }
 
@@ -373,6 +400,12 @@
       toast(`"${word.toUpperCase()}" not in dictionary`);
       return;
     }
+    // Anti-abuse ceiling only — a legit game never reaches this many words.
+    // Refuse the word rather than ending the round, so there's no fail state.
+    if (state.words.length >= BOARD.targetWords + WORD_CAP_OVER_TARGET) {
+      toast("Word limit reached");
+      return;
+    }
 
     const cells = selection.slice();
     const wasDone = state.done;
@@ -383,10 +416,9 @@
     state.active = cells[cells.length - 1];
     selection = [state.active];
 
-    // Done state: either tiles filled (win) or too many words past par (bust).
+    // The only end state now is a win: every tile covered.
     const won = state.used.length >= BOARD.totalTiles;
-    const busted = state.words.length >= BOARD.targetWords + BUST_DELTA;
-    if (won || busted) state.done = true;
+    if (won) state.done = true;
     updateRecords(state.used.length);
     save();
     render();
@@ -471,49 +503,10 @@
     render();
   }
 
-  // Pick a chain word the player hasn't entered yet. Prefer one that starts
-  // at the current active letter (so it's playable from where they stand);
-  // fall back to any remaining chain word so they can see the intended path
-  // even if they need to backtrack.
-  function findHint() {
-    const entered = new Set(state.words.map((w) => w.word));
-    const activeLetter = letterAt(state.active);
-    for (let i = 0; i < BOARD.chain.length; i++) {
-      const w = BOARD.chain[i];
-      if (!entered.has(w) && w[0] === activeLetter)
-        return { word: w, index: i };
-    }
-    for (let i = 0; i < BOARD.chain.length; i++) {
-      const w = BOARD.chain[i];
-      if (!entered.has(w)) return { word: w, index: i };
-    }
-    return null;
-  }
-
-  function ordinal(n) {
-    const v = n % 100;
-    if (v >= 11 && v <= 13) return n + "th";
-    switch (n % 10) {
-      case 1:
-        return n + "st";
-      case 2:
-        return n + "nd";
-      case 3:
-        return n + "rd";
-      default:
-        return n + "th";
-    }
-  }
-
   function showHint() {
     if (state.done) return;
-    const h = findHint();
-    if (!h) {
-      toast("No hints available");
-      return;
-    }
     toast(
-      `Hint: the ${ordinal(h.index + 1)} target word is ${h.word.toUpperCase()}`,
+      `One of today's longest words is ${LONGEST_WORD.toUpperCase()}`,
       3500,
     );
   }
@@ -535,22 +528,24 @@
     const won = state.done && tilesUsed >= BOARD.totalTiles;
     const used = state.words.length;
     const target = BOARD.targetWords;
-    const label = deltaLabel(used - target);
     const blooms = Math.min(used, target);
     const filler = Math.max(0, target - used);
-    const wilts = Math.max(0, used - target);
+    // Cap the wilt run so a runaway overshoot can't balloon the share text.
+    const wilts = Math.min(Math.max(0, used - target), 10);
     const fillerChar = won ? "🏆" : "⚪";
     const bouquet =
       "🌸".repeat(blooms) + fillerChar.repeat(filler) + "🥀".repeat(wilts);
-    let line;
-    if (won) {
-      // Trophies, an exact match, and over-target wilts speak for themselves;
-      // append the label only when there's actually something to label.
-      line = label ? `${bouquet} ${label}` : bouquet;
-    } else {
-      line = `${bouquet} ${tilesUsed}/${BOARD.totalTiles} tiles`;
-    }
-    return `Blossom ${TODAY_KEY}\n${line}`;
+    // The bouquet already encodes the score; a win is just the flowers, while
+    // unfinished games still need the tile fraction to show progress.
+    const line = won
+      ? bouquet
+      : `${bouquet} ${tilesUsed}/${BOARD.totalTiles} tiles`;
+    // Keep the share to two lines: streak rides on the header line, subtly.
+    const header =
+      records.streak > 0
+        ? `Blossom ${TODAY_KEY} · 🔥 ${records.streak}`
+        : `Blossom ${TODAY_KEY}`;
+    return `${header}\n${line}`;
   }
 
   function share() {
@@ -583,6 +578,15 @@
   document.getElementById("bl-hint-btn").addEventListener("click", showHint);
 
   const modal = document.getElementById("bl-modal");
+  // First-time players land on a bare grid with no rules — open the how-to
+  // once so the chain mechanic (and the header buttons) are discoverable.
+  const HELP_SEEN_KEY = "blossom-help-seen";
+  if (!localStorage.getItem(HELP_SEEN_KEY)) {
+    modal.hidden = false;
+    try {
+      localStorage.setItem(HELP_SEEN_KEY, "1");
+    } catch {}
+  }
   document
     .getElementById("bl-help-btn")
     .addEventListener("click", () => (modal.hidden = false));

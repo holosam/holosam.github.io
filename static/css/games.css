@@ -142,6 +142,31 @@ body.game-body {
   letter-spacing: 0.06em;
 }
 
+/* Low-key share affordance tucked after the completion text. vertical-align
+   middle keeps the small label optically centred against the large banner
+   caps instead of dropping to their baseline. */
+.bl-banner-share {
+  margin-left: 0.55rem;
+  vertical-align: middle;
+  position: relative;
+  top: -0.08em;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--bl-text-soft);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+
+.bl-banner-share:hover { opacity: 1; }
+
 .bl-grid-wrap {
   width: 100%;
   display: flex;
@@ -335,6 +360,13 @@ body.game-body {
 }
 
 .bl-modal-card li { margin: 0.35rem 0; }
+
+.bl-modal-foot {
+  margin: 1rem 0 0;
+  font-size: 0.85rem;
+  color: var(--bl-text-soft);
+  font-style: italic;
+}
 
 .bl-modal-close {
   position: absolute;
