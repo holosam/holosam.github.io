@@ -51,40 +51,68 @@
     return neighbors(a).includes(b);
   }
 
-  function pickChain(rng, genPool, genByFirst, targetTiles) {
-    const seed = genPool[Math.floor(rng() * genPool.length)];
-    const chain = [seed];
-    const used = new Set([seed]);
-    let allLetters = seed;
-
-    while (allLetters.length < targetTiles * 1.5 && chain.length < 8) {
-      const last = chain[chain.length - 1].slice(-1);
-      const candidates = (genByFirst[last] || []).filter(w => !used.has(w));
-      if (!candidates.length) break;
-
-      const prevSet = new Set(allLetters);
-      const scored = candidates.map(w => {
-        const overlap = [...new Set(w)].filter(l => prevSet.has(l)).length;
-        return { w, weight: overlap * overlap + 0.5 };
-      });
-      const total = scored.reduce((s, x) => s + x.weight, 0);
-      let r = rng() * total;
-      let chosen = scored[0].w;
-      for (const s of scored) {
-        r -= s.weight;
-        if (r <= 0) { chosen = s.w; break; }
-      }
-      chain.push(chosen);
-      used.add(chosen);
-      allLetters += chosen;
-    }
-    return chain;
+  // Manhattan-style distance on this offset hex grid, used as a placement
+  // tiebreaker to keep the blossom hugging the center.
+  // https://stackoverflow.com/questions/5084801
+  function hexDistance(a, b) {
+    const [ar, ac] = toRC(a);
+    const [br, bc] = toRC(b);
+    const dr = br - ar;
+    const dc = bc - ac;
+    return (dr < 0 && dc < 0) || (dr >= 0 && dc >= 0)
+      ? Math.abs(dr + dc)
+      : Math.max(Math.abs(dr), Math.abs(dc));
   }
 
-  function placeChain(chain, rng) {
-    const tiles = new Map();
+  // Order `items` by weighted sampling without replacement: higher-weight
+  // items tend toward the front, but it stays random per the rng. Used so the
+  // builder can try its preferred word first and fall back through the rest in
+  // a sensible order if placement dead-ends.
+  function weightedShuffle(items, weights, rng) {
+    const pool = items.map((it, i) => ({ it, w: weights[i] }));
+    let total = pool.reduce((s, x) => s + x.w, 0);
+    const out = [];
+    while (pool.length) {
+      let r = rng() * total;
+      let k = 0;
+      for (; k < pool.length - 1; k++) {
+        r -= pool[k].w;
+        if (r <= 0) break;
+      }
+      out.push(pool[k].it);
+      total -= pool[k].w;
+      pool.splice(k, 1);
+    }
+    return out;
+  }
+
+  function generateBoard(seed, genPool, options) {
+    const opts = options || {};
+    const targetTiles = opts.targetTiles || 22;
+    const minTiles = opts.minTiles || 14;
+    const maxWords = opts.maxWords || 8;
+    // Mild bias toward word lengths not yet used in this board. Each prior use
+    // of a length multiplies that length's weight by (1+alpha)^-count, so the
+    // first 5-letter word nudges later picks toward other lengths — enough to
+    // sway the mix, not enough to override the overlap weighting. Tunable.
+    const lengthAlpha = opts.lengthAlpha != null ? opts.lengthAlpha : 0.6;
+    const targetLetters = targetTiles * 1.5;
+    // Runaway guard: cap total word-placement attempts across all backtracking
+    // before giving up and reseeding. Normal generation never approaches this.
+    let budget = opts.budget || 20000;
+
+    const genByFirst = {};
+    for (const w of genPool) (genByFirst[w[0]] ||= []).push(w);
+
+    // The rng is threaded continuously through every decision below — seed
+    // word, each subsequent word, and every tile placement all draw from this
+    // one stream. That's why two different dates never produce the same board
+    // even when they happen to pick the same first word: the streams diverge
+    // on the very next draw. The board is byte-identical only for an identical
+    // seed (i.e. the same date). Keep it that way — never key a decision off
+    // word identity via a lookup; always pull from this rng.
+    const rng = mulberry32(seed);
     const start = idx(Math.floor(GRID / 2), Math.floor(GRID / 2));
-    const seq = [];
 
     function shuffle(arr) {
       const a = arr.slice();
@@ -95,7 +123,12 @@
       return a;
     }
 
-    function placeLetter(letter, prevCell) {
+    // Place `letter` adjacent to prevCell (or at center if prevCell is null).
+    // Reuse an adjacent tile already holding it; otherwise take the empty
+    // neighbor most surrounded by filled tiles, breaking ties toward the
+    // center to keep the blossom compact. Returns the cell, or null if boxed
+    // in (no empty neighbor) — the caller's signal to backtrack.
+    function placeLetter(tiles, letter, prevCell) {
       if (prevCell === null) {
         tiles.set(start, letter);
         return start;
@@ -106,63 +139,130 @@
       }
       let best = -1;
       let bestScore = -1;
+      let bestDist = Infinity;
       for (const n of nbrs) {
         if (tiles.has(n)) continue;
-        const filled = neighbors(n).filter(x => tiles.has(x)).length;
-        if (filled > bestScore) { bestScore = filled; best = n; }
+        const filledNeighbors = neighbors(n).filter(x => tiles.has(x)).length;
+        const dist = hexDistance(n, start);
+        if (filledNeighbors > bestScore ||
+            (filledNeighbors === bestScore && dist < bestDist)) {
+          bestScore = filledNeighbors;
+          bestDist = dist;
+          best = n;
+        }
       }
       if (best < 0) return null;
       tiles.set(best, letter);
       return best;
     }
 
-    for (let wi = 0; wi < chain.length; wi++) {
-      const word = chain[wi];
-      // The first letter of every word is already placed — either by this
-      // block (for wi=0) or by the previous word's final letter. So we
-      // always start the per-letter loop at index 1.
-      if (wi === 0) {
-        const c = placeLetter(word[0], null);
-        seq.push({ wordIdx: 0, letterIdx: 0, cellIdx: c });
+    // Mutable build state, reset per seed-word attempt below.
+    let tiles, seq, chain, used, lengthCounts, allLetters;
+
+    // Lay `word` onto the board. The first letter is the shared tile (already
+    // placed by the previous word, or the center for the first word), so
+    // letters are placed from index 1. Returns the cells newly added (for
+    // rollback) and whether placement succeeded.
+    function placeWord(word, isFirst) {
+      const added = [];
+      let prev;
+      if (isFirst) {
+        const c = placeLetter(tiles, word[0], null);
+        added.push(c);
+        seq.push({ wordIdx: chain.length, letterIdx: 0, cellIdx: c });
+        prev = c;
+      } else {
+        prev = seq[seq.length - 1].cellIdx;
       }
-      let prev = seq[seq.length - 1].cellIdx;
       for (let li = 1; li < word.length; li++) {
-        const c = placeLetter(word[li], prev);
-        if (c === null) return null;
-        seq.push({ wordIdx: wi, letterIdx: li, cellIdx: c });
+        const before = tiles.size;
+        const c = placeLetter(tiles, word[li], prev);
+        if (c === null) return { ok: false, added };
+        if (tiles.size > before) added.push(c);
+        seq.push({ wordIdx: chain.length, letterIdx: li, cellIdx: c });
         prev = c;
       }
+      return { ok: true, added };
     }
-    return { tiles, seq, start };
-  }
 
-  function generateBoard(seed, genPool, options) {
-    const opts = options || {};
-    const targetTiles = opts.targetTiles || 22;
-    const minTiles = opts.minTiles || 14;
-    const genByFirst = {};
-    for (const w of genPool) (genByFirst[w[0]] ||= []).push(w);
+    // Recursively append words to the chain, backtracking on dead-ends.
+    // Returns true once a placed chain meets the size/word targets.
+    function extend() {
+      if (allLetters.length >= targetLetters || chain.length >= maxWords) {
+        return tiles.size >= minTiles;
+      }
+      const last = chain[chain.length - 1].slice(-1);
+      const candidates = (genByFirst[last] || []).filter(w => !used.has(w));
+      if (!candidates.length) return tiles.size >= minTiles;
 
-    const rng = mulberry32(seed);
-    for (let attempt = 0; attempt < 30; attempt++) {
-      const chain = pickChain(rng, genPool, genByFirst, targetTiles);
-      const placed = placeChain(chain, rng);
-      if (!placed || placed.tiles.size < minTiles) continue;
-      return {
-        chain,
-        tiles: placed.tiles,
-        seq: placed.seq,
-        start: placed.start,
-        targetWords: chain.length,        // ideal # of words to complete
-        totalTiles: placed.tiles.size,    // # of tiles on the board
-      };
+      const prevSet = new Set(allLetters);
+      const weights = candidates.map(w => {
+        const overlap = [...new Set(w)].filter(l => prevSet.has(l)).length;
+        const lengthBonus = Math.pow(1 + lengthAlpha, -(lengthCounts[w.length] || 0));
+        return (overlap * overlap + 0.5) * lengthBonus;
+      });
+      const ordered = weightedShuffle(candidates, weights, rng);
+
+      for (const w of ordered) {
+        if (budget <= 0) return false;
+        budget--;
+        const seqLen = seq.length;
+        const res = placeWord(w, false);
+        if (res.ok) {
+          chain.push(w);
+          used.add(w);
+          allLetters += w;
+          lengthCounts[w.length] = (lengthCounts[w.length] || 0) + 1;
+          if (extend()) return true;
+          lengthCounts[w.length]--;
+          allLetters = allLetters.slice(0, -w.length);
+          used.delete(w);
+          chain.pop();
+        }
+        for (const c of res.added) tiles.delete(c);
+        seq.length = seqLen;
+      }
+      return false;
     }
+
+    // Try seed words in a random order, backtracking through the search until
+    // one yields a complete board. (A whole-board restart is now rare — most
+    // dead-ends are recovered by trying the next word, not the next seed.)
+    for (const seedWord of shuffle(genPool)) {
+      if (budget <= 0) break;
+      tiles = new Map();
+      seq = [];
+      chain = [];
+      used = new Set();
+      lengthCounts = {};
+      allLetters = '';
+
+      const res = placeWord(seedWord, true);
+      if (!res.ok) continue;
+      chain.push(seedWord);
+      used.add(seedWord);
+      allLetters = seedWord;
+      lengthCounts[seedWord.length] = 1;
+
+      if (extend()) {
+        return {
+          chain: chain.slice(),
+          tiles: new Map(tiles),
+          seq: seq.slice(),
+          start,
+          targetWords: chain.length,     // ideal # of words to complete
+          totalTiles: tiles.size,        // # of tiles on the board
+        };
+      }
+    }
+
+    // Exhausted the pool (or the attempt budget) without a board — reseed.
     return generateBoard((seed + 1) >>> 0, genPool, options);
   }
 
   const api = {
     mulberry32, seedForDate, dateKey,
-    GRID, idx, toRC, neighbors, isAdjacent,
+    GRID, idx, toRC, neighbors, isAdjacent, hexDistance,
     generateBoard,
   };
 

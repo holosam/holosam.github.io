@@ -33,7 +33,7 @@ compress-all: ## Compress all PNG/JPG images in static/images/ to WebP
 clean: ## Remove generated files
 	rm -rf public/ resources/
 
-blossom-words: ## Print today's Blossom answer (or pass date=YYYY-MM-DD)
+blossom-solve: ## Print today's Blossom answer (or pass date=YYYY-MM-DD)
 	@node scripts/blossom-solve.js $(date)
 
 blossom-words-fetch: ## Download SCOWL size-60 word list to assets/blossom/
@@ -41,6 +41,3 @@ blossom-words-fetch: ## Download SCOWL size-60 word list to assets/blossom/
 	curl -sL "http://app.aspell.net/create?max_size=60&spelling=US&max_variant=0&diacritic=both&special=hacker&special=roman-numerals&download=wordlist&encoding=utf-8&format=inline" \
 		-o assets/blossom/scowl-60.txt
 	@echo "Wrote assets/blossom/scowl-60.txt ($$(wc -l < assets/blossom/scowl-60.txt) lines)"
-
-blossom-words-build: ## Regenerate static/js/blossom-words.js from SCOWL + word_bank
-	@node scripts/blossom-build-words.js
