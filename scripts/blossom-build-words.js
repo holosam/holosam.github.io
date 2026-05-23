@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // Regenerate static/js/blossom-words.js from the SCOWL ESDB common-words list
-// and assets/blossom/word_bank.txt. Run via `make blossom-words-build`.
+// and assets/blossom/word_bank.txt. Run with:
+//   node scripts/blossom-build-words.js
+// First-time setup (fetching the SCOWL input) is documented below.
 //
 // ─── Validation list (BLOSSOM_WORDS) ───────────────────────────────────────
 // Currently sourced from SCOWL/ESDB size-60 American English. SCOWL is the
@@ -31,6 +33,17 @@
 // The curated root-word bank, capped at 7 letters to keep daily chains
 // approachable. Long words (8-10) still validate (so a player can play
 // CONSENSUS if they spot it), they just won't appear as targets.
+//
+// ─── First-time setup: fetching the SCOWL input ────────────────────────────
+// assets/blossom/word_bank.txt is committed; assets/blossom/scowl-60.txt is
+// gitignored and fetched on demand — rarely, only when bumping the SCOWL size.
+// This bootstrap used to be `make blossom-words-fetch`; it's just:
+//
+//   mkdir -p assets/blossom
+//   curl -sL "http://app.aspell.net/create?max_size=60&spelling=US&max_variant=0&diacritic=both&special=hacker&special=roman-numerals&download=wordlist&encoding=utf-8&format=inline" \
+//     -o assets/blossom/scowl-60.txt
+//
+// (The same command is printed by the missing-file error below.)
 
 const fs = require('fs');
 const path = require('path');
@@ -75,7 +88,7 @@ const validSorted = [...valid].sort();
 const genSorted = [...genSet].sort();
 
 const out = `// Word lists for Blossom. GENERATED — do not edit by hand.
-// Regenerate with: make blossom-words-build
+// Regenerate with: node scripts/blossom-build-words.js
 //   BLOSSOM_WORDS     = validation pool (SCOWL ESDB size 60, US English,
 //                       lengths ${MIN_LEN}-${MAX_LEN}, plus all generation words).
 //   BLOSSOM_GEN_WORDS = chain-generation pool (curated word_bank.txt,

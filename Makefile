@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: serve build new-post compress-image compress-all clean help blossom-words blossom-words-build blossom-words-fetch
+.PHONY: help serve build new-post compress-image clean blossom-solve
 
 # Default target
 help: ## Show this help
@@ -22,25 +22,10 @@ compress-image: ## Compress a single image to WebP (usage: make compress-image s
 	@command -v cwebp >/dev/null 2>&1 || { echo "cwebp not found. Install with: brew install webp"; exit 1; }
 	cwebp -q 80 "$(src)" -o "$$(echo "$(src)" | sed 's/\.[^.]*$$/.webp/')"
 
-compress-all: ## Compress all PNG/JPG images in static/images/ to WebP
-	@command -v cwebp >/dev/null 2>&1 || { echo "cwebp not found. Install with: brew install webp"; exit 1; }
-	@shopt -s nullglob; for f in static/images/*.png static/images/*.jpg static/images/*.jpeg; do \
-		out="$${f%.*}.webp"; \
-		echo "Converting $$f -> $$out"; \
-		cwebp -q 80 "$$f" -o "$$out"; \
-	done
-
 clean: ## Remove generated files
 	rm -rf public/ resources/
 
-blossom-words: ## Print today's Blossom answer (or pass date=YYYY-MM-DD)
+blossom-solve: ## Print today's Blossom answer (or pass date=YYYY-MM-DD)
 	@node scripts/blossom-solve.js $(date)
-
-blossom-words-fetch: ## Download SCOWL size-60 word list to assets/blossom/
-	@mkdir -p assets/blossom
-	curl -sL "http://app.aspell.net/create?max_size=60&spelling=US&max_variant=0&diacritic=both&special=hacker&special=roman-numerals&download=wordlist&encoding=utf-8&format=inline" \
-		-o assets/blossom/scowl-60.txt
-	@echo "Wrote assets/blossom/scowl-60.txt ($$(wc -l < assets/blossom/scowl-60.txt) lines)"
-
-blossom-words-build: ## Regenerate static/js/blossom-words.js from SCOWL + word_bank
-	@node scripts/blossom-build-words.js
+# Regenerating the Blossom word lists (rare) lives in scripts/blossom-build-words.js,
+# including the one-time SCOWL fetch that used to be `make blossom-words-fetch`.
