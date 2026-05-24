@@ -27,5 +27,3 @@ clean: ## Remove generated files
 
 blossom-solve: ## Print today's Blossom answer (or pass date=YYYY-MM-DD)
 	@node scripts/blossom-solve.js $(date)
-# Regenerating the Blossom word lists (rare) lives in scripts/blossom-build-words.js,
-# including the one-time SCOWL fetch that used to be `make blossom-words-fetch`.

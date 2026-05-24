@@ -63,6 +63,7 @@ Aside from that, I'd want to see how other people like the game and what frustra
 - May 18th - added a hint button, updated dictionary to tune difficulty, adaptive window sizing
 - May 19th - changed deselect button to delete, more scoring dimensions, share button
 - May 22nd - added win streak, tuned game generation, removed unlimited hints
+- May 23rd - state validation for new day, tweak restart and delete button behavior
 
 [^1]: The game was originally hosted on a cloud provider with a persistent backend so she could view aggregated stats over time. This is now just on a static site with my other projects, more as a demo than anything else.
 

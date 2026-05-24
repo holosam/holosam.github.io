@@ -301,10 +301,13 @@ body.game-body {
 }
 
 .bl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   background: #fff;
   border: 1.5px solid #2c2c2c;
   color: #2c2c2c;
-  padding: 0.55rem 1.4rem;
+  padding: 0.55rem 1.3rem;
   border-radius: 999px;
   cursor: pointer;
   font-size: 0.95rem;
@@ -312,6 +315,8 @@ body.game-body {
   transition: background 0.15s, transform 0.05s;
   -webkit-tap-highlight-color: transparent;
 }
+
+.bl-btn svg { display: block; }
 
 .bl-btn:hover { background: #f5f5f5; }
 .bl-btn:active { transform: scale(0.97); }
@@ -381,6 +386,21 @@ body.game-body {
 }
 
 .bl-modal-close:hover { color: #222; }
+
+.bl-confirm-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.bl-confirm-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
 
 @media (prefers-color-scheme: dark) {
   .bl-container {

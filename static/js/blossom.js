@@ -24,26 +24,90 @@
     "",
   );
 
-  function loadState() {
+  // Each day leaves behind its own state key; sweep stale ones so storage
+  // doesn't accumulate a key per day forever. (Sizes are tiny, but tidy.)
+  function pruneOldDays() {
     try {
-      const s = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-      // Validate `active` points at a real tile — otherwise the selection
-      // anchor is broken and the player gets stuck (no clicks register).
-      if (
-        s &&
-        Array.isArray(s.words) &&
-        Array.isArray(s.used) &&
-        BOARD.tiles.has(s.active)
-      ) {
-        return s;
+      // Iterate backwards — removeItem reindexes the remaining keys.
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith("blossom-v2-") && k !== STORAGE_KEY) {
+          localStorage.removeItem(k);
+        }
       }
     } catch {}
+  }
+  pruneOldDays();
+
+  function freshState() {
     return {
       words: [], // [{word, cells: [idx,...]}]
       used: [BOARD.start],
       active: BOARD.start,
       done: false,
+      // Today's bests, scoped to this board. bestWords is the lowest word count
+      // among today's completions; maxTiles is the most tiles covered today.
+      // They survive a Restart (so you can see if a redo beat your earlier run)
+      // but reset with each new daily board.
+      bestWords: null,
+      maxTiles: 0,
     };
+  }
+
+  // Rebuild and verify a saved state against TODAY's board. The word list is
+  // the source of truth; `used`/`active`/`done` are recomputed from it rather
+  // than trusted. Any inconsistency — a stale board left over from a generator
+  // change (same date key, different board), or hand-edited localStorage —
+  // fails validation and the day starts fresh. This is what stops a corrupt or
+  // spoofed save from surfacing words that can't be spelled on the real board.
+  function validateState(s) {
+    if (!s || !Array.isArray(s.words)) return null;
+    const used = [BOARD.start];
+    let anchor = BOARD.start; // where the next word must begin
+    for (const w of s.words) {
+      if (!w || typeof w.word !== "string" || !Array.isArray(w.cells))
+        return null;
+      const cells = w.cells;
+      if (cells.length < 3 || cells.length > MAX_WORD_LEN) return null;
+      // Each word continues the chain from the previous word's last tile…
+      if (cells[0] !== anchor) return null;
+      // …and every step is a real tile reached by a legal adjacency move.
+      for (let k = 0; k < cells.length; k++) {
+        if (!BOARD.tiles.has(cells[k])) return null;
+        if (k > 0 && !isAdjacent(cells[k - 1], cells[k])) return null;
+      }
+      // The cells must spell the stored word, and it must be a real word.
+      if (cells.map(letterAt).join("") !== w.word) return null;
+      if (!VALID.has(w.word)) return null;
+      cells.forEach((c) => {
+        if (!used.includes(c)) used.push(c);
+      });
+      anchor = cells[cells.length - 1];
+    }
+    // Carry today's bests through the reload, lightly sanity-checked.
+    const bestWords =
+      typeof s.bestWords === "number" && s.bestWords > 0 ? s.bestWords : null;
+    const maxTiles =
+      typeof s.maxTiles === "number" && s.maxTiles > 0
+        ? Math.min(s.maxTiles, BOARD.totalTiles)
+        : 0;
+    return {
+      words: s.words,
+      used,
+      active: anchor,
+      done: used.length >= BOARD.totalTiles,
+      bestWords,
+      maxTiles,
+    };
+  }
+
+  function loadState() {
+    try {
+      const s = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+      const valid = validateState(s);
+      if (valid) return valid;
+    } catch {}
+    return freshState();
   }
   let state = loadState();
 
@@ -53,14 +117,11 @@
     } catch {}
   }
 
-  // Cross-day records, not date-scoped. bestWords is the lowest word count
-  // across any completed game; maxTiles is the most tiles ever covered.
-  // Storage version bumped to v2 when the field shape changed.
+  // Cross-day records, not date-scoped. Only the win streak lives here now —
+  // the word/tile bests are per-board and live in the daily `state`.
   const RECORDS_KEY = "blossom-records-v2";
   function loadRecords() {
     const defaults = {
-      bestWords: null,
-      maxTiles: 0,
       streak: 0,
       lastWinKey: null,
     };
@@ -82,18 +143,11 @@
     } catch {}
   }
   function updateRecords(tilesUsed) {
-    let changed = false;
-    if (tilesUsed > records.maxTiles) {
-      records.maxTiles = tilesUsed;
-      changed = true;
-    }
+    // Today's bests live in `state`; the caller's save() persists them.
+    if (tilesUsed > state.maxTiles) state.maxTiles = tilesUsed;
     if (state.done && tilesUsed >= BOARD.totalTiles) {
-      if (
-        records.bestWords === null ||
-        state.words.length < records.bestWords
-      ) {
-        records.bestWords = state.words.length;
-        changed = true;
+      if (state.bestWords === null || state.words.length < state.bestWords) {
+        state.bestWords = state.words.length;
       }
       // Win streak: extend if yesterday was also a win, else start fresh.
       // Guard on lastWinKey so re-winning the same day can't double-count.
@@ -103,10 +157,9 @@
             ? records.streak + 1
             : 1;
         records.lastWinKey = TODAY_KEY;
-        changed = true;
+        saveRecords();
       }
     }
-    if (changed) saveRecords();
   }
 
   // ─── DOM scaffolding ───────────────────────────────────────────────────────
@@ -148,9 +201,28 @@
       </div>
       <div class="bl-toast" id="bl-toast"></div>
       <div class="bl-buttons">
-        <button class="bl-btn" id="bl-restart">Restart</button>
-        <button class="bl-btn" id="bl-delete">Delete</button>
-        <button class="bl-btn bl-btn--primary" id="bl-enter">Enter</button>
+        <button class="bl-btn" id="bl-delete">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 5H9l-6 7 6 7h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/>
+            <line x1="18" y1="9.5" x2="12.5" y2="14.5"/>
+            <line x1="12.5" y1="9.5" x2="18" y2="14.5"/>
+          </svg>
+          Delete
+        </button>
+        <button class="bl-btn" id="bl-restart">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="1 4 1 10 7 10"/>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+          </svg>
+          Restart
+        </button>
+        <button class="bl-btn bl-btn--primary" id="bl-enter">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="9 10 4 15 9 20"/>
+            <path d="M20 4v7a4 4 0 0 1-4 4H4"/>
+          </svg>
+          Enter
+        </button>
       </div>
       <div class="bl-modal" id="bl-modal" hidden>
         <div class="bl-modal-card">
@@ -163,6 +235,19 @@
             <li>The Delete button undoes one letter. If you're stuck, tap 💡 for a hint.</li>
           </ol>
           <p class="bl-modal-foot">The board resets at midnight, so come back tomorrow to play a new one!</p>
+        </div>
+      </div>
+      <div class="bl-modal" id="bl-confirm" hidden>
+        <div class="bl-modal-card">
+          <p>Are you sure you want to restart?</p>
+          <label class="bl-confirm-check">
+            <input type="checkbox" id="bl-confirm-skip" />
+            Don't ask again
+          </label>
+          <div class="bl-confirm-actions">
+            <button class="bl-btn" id="bl-confirm-cancel">Cancel</button>
+            <button class="bl-btn bl-btn--primary" id="bl-confirm-ok">Restart</button>
+          </div>
         </div>
       </div>
     </div>
@@ -340,7 +425,7 @@
     const wordCount = state.words.length;
     const wordsExtras = [
       wordCount > 0 ? `current: ${wordCount}` : "",
-      records.bestWords !== null ? `best: ${records.bestWords}` : "",
+      state.bestWords !== null ? `best: ${state.bestWords}` : "",
     ]
       .filter(Boolean)
       .join(", ");
@@ -350,8 +435,8 @@
     const tilesPart =
       wordCount > 0
         ? `${tilesUsed}/${BOARD.totalTiles} tiles` +
-          (records.bestWords === null && records.maxTiles > 0
-            ? ` (best: ${records.maxTiles})`
+          (state.bestWords === null && state.maxTiles > 0
+            ? ` (best: ${state.maxTiles})`
             : "")
         : "";
     const statusTxt = [wordsPart, tilesPart].filter(Boolean).join(" · ");
@@ -479,8 +564,10 @@
   //   • If letters have been added past the anchor, drop the most recent one.
   //   • Otherwise, un-enter the most recently entered word and re-select
   //     all but its last letter, so the player can swap that final letter.
+  // Delete stays live after a win, too: backing off a letter clears `done`
+  // (below) so the player can rework the tail of their chain and try for a
+  // lower word count.
   function deleteLast() {
-    if (state.done) return;
     if (selection.length > 1) {
       selection.pop();
       render();
@@ -511,9 +598,13 @@
     );
   }
 
-  // Build the shareable score string. Reflects the *current* game state,
-  // NOT the player's best for today — so if they restart, the previous
-  // attempt is gone from the share. Always shows a target-slot bouquet:
+  // Build the shareable score string. Once the board has been completed today,
+  // this shares the player's BEST result — the fewest-word win — not whatever
+  // redo happens to be on the board. With delete-after-win and restart keeping
+  // today's best, players replay to chase a lower count; a share shouldn't
+  // undersell the win they already earned. Before the first completion there's
+  // no "best" yet, so it falls back to the current attempt's progress.
+  // Always a target-slot bouquet:
   //   🌸 = a word entered  (counts up to target)
   //   ⚪ = a target slot still open  (mid-game or bust — replaced by 🏆 on a win)
   //   🏆 = beat target by this many words  (under-target win — the rare brag)
@@ -521,13 +612,14 @@
   // Non-winning states append the tile fraction so the receiver can tell
   // whether you actually finished the board.
   function shareText() {
-    const tilesUsed = new Set([
-      BOARD.start,
-      ...state.words.flatMap((w) => w.cells),
-    ]).size;
-    const won = state.done && tilesUsed >= BOARD.totalTiles;
-    const used = state.words.length;
     const target = BOARD.targetWords;
+    // bestWords is only ever set on a full-board win, so a non-null value means
+    // the board's been completed today — share that best run.
+    const won = state.bestWords !== null;
+    const used = won ? state.bestWords : state.words.length;
+    const tilesUsed = won
+      ? BOARD.totalTiles
+      : new Set([BOARD.start, ...state.words.flatMap((w) => w.cells)]).size;
     const blooms = Math.min(used, target);
     const filler = Math.max(0, target - used);
     // Cap the wilt run so a runaway overshoot can't balloon the share text.
@@ -548,20 +640,54 @@
     return `${header}\n${line}`;
   }
 
+  // Last-resort copy for browsers without the async clipboard API (older /
+  // in-app webviews): a hidden textarea + execCommand.
+  function copyFallback(text) {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "absolute";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      toast(ok ? "Copied to clipboard" : "Couldn't copy — try again");
+    } catch {
+      toast("Couldn't copy — try again");
+    }
+  }
+
   function share() {
-    navigator.clipboard
-      .writeText(shareText())
-      .then(() => toast("Copied to clipboard"))
-      .catch(() => toast("Couldn't copy — try again"));
+    const text = shareText();
+    // Prefer the clipboard API where it exists (the familiar "Copied" toast on
+    // desktop and modern mobile). `navigator.clipboard` is undefined in
+    // non-secure contexts and some in-app browsers — accessing .writeText there
+    // throws synchronously, which a .catch() wouldn't catch — so guard it, then
+    // fall back to the native share sheet, then to a manual copy.
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(text)
+        .then(() => toast("Copied to clipboard"))
+        .catch(() => toast("Couldn't copy — try again"));
+      return;
+    }
+    if (navigator.share) {
+      // Rejects if the user dismisses the sheet — nothing to report there.
+      navigator.share({ text }).catch(() => {});
+      return;
+    }
+    copyFallback(text);
   }
 
   function restart() {
-    state = {
-      words: [],
-      used: [BOARD.start],
-      active: BOARD.start,
-      done: false,
-    };
+    const { bestWords, maxTiles } = state;
+    state = freshState();
+    // Today's bests persist across a Restart so a redo can be measured
+    // against your earlier run on the same board.
+    state.bestWords = bestWords;
+    state.maxTiles = maxTiles;
     selection = [state.active];
     save();
     render();
@@ -573,15 +699,58 @@
 
   document.getElementById("bl-enter").addEventListener("click", submit);
   document.getElementById("bl-delete").addEventListener("click", deleteLast);
-  document.getElementById("bl-restart").addEventListener("click", restart);
   document.getElementById("bl-share").addEventListener("click", share);
   document.getElementById("bl-hint-btn").addEventListener("click", showHint);
+
+  // Restart is destructive, so it confirms first — unless the player has opted
+  // out via the dialog's "Don't ask again" checkbox (a one-way preference,
+  // cleared only by wiping site data).
+  const RESTART_NOCONFIRM_KEY = "blossom-restart-noconfirm";
+  const confirmModal = document.getElementById("bl-confirm");
+  function requestRestart() {
+    // Guard the read: a storage-blocked browser throws on access, and we
+    // don't want a dead Restart button — just fall through to the prompt.
+    let noConfirm = false;
+    try {
+      noConfirm = !!localStorage.getItem(RESTART_NOCONFIRM_KEY);
+    } catch {}
+    if (noConfirm) {
+      restart();
+      return;
+    }
+    document.getElementById("bl-confirm-skip").checked = false;
+    confirmModal.hidden = false;
+  }
+  document
+    .getElementById("bl-restart")
+    .addEventListener("click", requestRestart);
+  document
+    .getElementById("bl-confirm-cancel")
+    .addEventListener("click", () => (confirmModal.hidden = true));
+  document.getElementById("bl-confirm-ok").addEventListener("click", () => {
+    if (document.getElementById("bl-confirm-skip").checked) {
+      try {
+        localStorage.setItem(RESTART_NOCONFIRM_KEY, "1");
+      } catch {}
+    }
+    confirmModal.hidden = true;
+    restart();
+  });
+  confirmModal.addEventListener("click", (e) => {
+    if (e.target === confirmModal) confirmModal.hidden = true;
+  });
 
   const modal = document.getElementById("bl-modal");
   // First-time players land on a bare grid with no rules — open the how-to
   // once so the chain mechanic (and the header buttons) are discoverable.
   const HELP_SEEN_KEY = "blossom-help-seen";
-  if (!localStorage.getItem(HELP_SEEN_KEY)) {
+  // Guard the read too: an unguarded localStorage access throws in
+  // storage-blocked browsers, which here would break the whole game at init.
+  let helpSeen = false;
+  try {
+    helpSeen = !!localStorage.getItem(HELP_SEEN_KEY);
+  } catch {}
+  if (!helpSeen) {
     modal.hidden = false;
     try {
       localStorage.setItem(HELP_SEEN_KEY, "1");
@@ -607,4 +776,7 @@
     if (!document.hidden) refreshIfStale();
   });
   window.addEventListener("pageshow", refreshIfStale);
+  // visibilitychange/pageshow miss the case of a tab left focused across
+  // midnight, so also poll once a minute.
+  setInterval(refreshIfStale, 60000);
 })();
