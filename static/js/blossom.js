@@ -24,6 +24,21 @@
     "",
   );
 
+  // Each day leaves behind its own state key; sweep stale ones so storage
+  // doesn't accumulate a key per day forever. (Sizes are tiny, but tidy.)
+  function pruneOldDays() {
+    try {
+      // Iterate backwards — removeItem reindexes the remaining keys.
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith("blossom-v2-") && k !== STORAGE_KEY) {
+          localStorage.removeItem(k);
+        }
+      }
+    } catch {}
+  }
+  pruneOldDays();
+
   function freshState() {
     return {
       words: [], // [{word, cells: [idx,...]}]
@@ -186,9 +201,28 @@
       </div>
       <div class="bl-toast" id="bl-toast"></div>
       <div class="bl-buttons">
-        <button class="bl-btn" id="bl-restart">Restart</button>
-        <button class="bl-btn" id="bl-delete">Delete</button>
-        <button class="bl-btn bl-btn--primary" id="bl-enter">Enter</button>
+        <button class="bl-btn" id="bl-delete">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 5H9l-6 7 6 7h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/>
+            <line x1="18" y1="9.5" x2="12.5" y2="14.5"/>
+            <line x1="12.5" y1="9.5" x2="18" y2="14.5"/>
+          </svg>
+          Delete
+        </button>
+        <button class="bl-btn" id="bl-restart">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="1 4 1 10 7 10"/>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+          </svg>
+          Restart
+        </button>
+        <button class="bl-btn bl-btn--primary" id="bl-enter">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="9 10 4 15 9 20"/>
+            <path d="M20 4v7a4 4 0 0 1-4 4H4"/>
+          </svg>
+          Enter
+        </button>
       </div>
       <div class="bl-modal" id="bl-modal" hidden>
         <div class="bl-modal-card">
@@ -205,8 +239,7 @@
       </div>
       <div class="bl-modal" id="bl-confirm" hidden>
         <div class="bl-modal-card">
-          <h2>Restart game?</h2>
-          <p>This clears your current words and starts today's board over.</p>
+          <p>Are you sure you want to restart?</p>
           <label class="bl-confirm-check">
             <input type="checkbox" id="bl-confirm-skip" />
             Don't ask again
@@ -565,9 +598,13 @@
     );
   }
 
-  // Build the shareable score string. Reflects the *current* game state,
-  // NOT the player's best for today — so if they restart, the previous
-  // attempt is gone from the share. Always shows a target-slot bouquet:
+  // Build the shareable score string. Once the board has been completed today,
+  // this shares the player's BEST result — the fewest-word win — not whatever
+  // redo happens to be on the board. With delete-after-win and restart keeping
+  // today's best, players replay to chase a lower count; a share shouldn't
+  // undersell the win they already earned. Before the first completion there's
+  // no "best" yet, so it falls back to the current attempt's progress.
+  // Always a target-slot bouquet:
   //   🌸 = a word entered  (counts up to target)
   //   ⚪ = a target slot still open  (mid-game or bust — replaced by 🏆 on a win)
   //   🏆 = beat target by this many words  (under-target win — the rare brag)
@@ -575,13 +612,14 @@
   // Non-winning states append the tile fraction so the receiver can tell
   // whether you actually finished the board.
   function shareText() {
-    const tilesUsed = new Set([
-      BOARD.start,
-      ...state.words.flatMap((w) => w.cells),
-    ]).size;
-    const won = state.done && tilesUsed >= BOARD.totalTiles;
-    const used = state.words.length;
     const target = BOARD.targetWords;
+    // bestWords is only ever set on a full-board win, so a non-null value means
+    // the board's been completed today — share that best run.
+    const won = state.bestWords !== null;
+    const used = won ? state.bestWords : state.words.length;
+    const tilesUsed = won
+      ? BOARD.totalTiles
+      : new Set([BOARD.start, ...state.words.flatMap((w) => w.cells)]).size;
     const blooms = Math.min(used, target);
     const filler = Math.max(0, target - used);
     // Cap the wilt run so a runaway overshoot can't balloon the share text.
@@ -602,11 +640,45 @@
     return `${header}\n${line}`;
   }
 
+  // Last-resort copy for browsers without the async clipboard API (older /
+  // in-app webviews): a hidden textarea + execCommand.
+  function copyFallback(text) {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "absolute";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      toast(ok ? "Copied to clipboard" : "Couldn't copy — try again");
+    } catch {
+      toast("Couldn't copy — try again");
+    }
+  }
+
   function share() {
-    navigator.clipboard
-      .writeText(shareText())
-      .then(() => toast("Copied to clipboard"))
-      .catch(() => toast("Couldn't copy — try again"));
+    const text = shareText();
+    // Prefer the clipboard API where it exists (the familiar "Copied" toast on
+    // desktop and modern mobile). `navigator.clipboard` is undefined in
+    // non-secure contexts and some in-app browsers — accessing .writeText there
+    // throws synchronously, which a .catch() wouldn't catch — so guard it, then
+    // fall back to the native share sheet, then to a manual copy.
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(text)
+        .then(() => toast("Copied to clipboard"))
+        .catch(() => toast("Couldn't copy — try again"));
+      return;
+    }
+    if (navigator.share) {
+      // Rejects if the user dismisses the sheet — nothing to report there.
+      navigator.share({ text }).catch(() => {});
+      return;
+    }
+    copyFallback(text);
   }
 
   function restart() {
@@ -636,7 +708,13 @@
   const RESTART_NOCONFIRM_KEY = "blossom-restart-noconfirm";
   const confirmModal = document.getElementById("bl-confirm");
   function requestRestart() {
-    if (localStorage.getItem(RESTART_NOCONFIRM_KEY)) {
+    // Guard the read: a storage-blocked browser throws on access, and we
+    // don't want a dead Restart button — just fall through to the prompt.
+    let noConfirm = false;
+    try {
+      noConfirm = !!localStorage.getItem(RESTART_NOCONFIRM_KEY);
+    } catch {}
+    if (noConfirm) {
       restart();
       return;
     }
@@ -666,7 +744,13 @@
   // First-time players land on a bare grid with no rules — open the how-to
   // once so the chain mechanic (and the header buttons) are discoverable.
   const HELP_SEEN_KEY = "blossom-help-seen";
-  if (!localStorage.getItem(HELP_SEEN_KEY)) {
+  // Guard the read too: an unguarded localStorage access throws in
+  // storage-blocked browsers, which here would break the whole game at init.
+  let helpSeen = false;
+  try {
+    helpSeen = !!localStorage.getItem(HELP_SEEN_KEY);
+  } catch {}
+  if (!helpSeen) {
     modal.hidden = false;
     try {
       localStorage.setItem(HELP_SEEN_KEY, "1");
@@ -692,4 +776,7 @@
     if (!document.hidden) refreshIfStale();
   });
   window.addEventListener("pageshow", refreshIfStale);
+  // visibilitychange/pageshow miss the case of a tab left focused across
+  // midnight, so also poll once a minute.
+  setInterval(refreshIfStale, 60000);
 })();
