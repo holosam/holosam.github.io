@@ -382,6 +382,21 @@ body.game-body {
 
 .bl-modal-close:hover { color: #222; }
 
+.bl-confirm-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.bl-confirm-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
 @media (prefers-color-scheme: dark) {
   .bl-container {
     /* Dark theme — warm cream petals against deep teal-leaf background.
