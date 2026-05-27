@@ -44,7 +44,7 @@ During the design process for the game, I gained a further appreciation for the 
 3. An application that fits neatly on a mobile screen, with a standardized and familiar pattern.
 
 On these dimensions, I would grade myself:
-1. **Balance: 2/5.** The randomness in the word generation creates very different levels of difficulty per day and doesn't always strike the right balance. I feel it's often too challenging to make incremental progress at the beginning, and instead depends on you making a breakthrough to find the "right" answer (the words used to generate the board). So it doesn't reward casual gameplay very well.
+1. **Balance: 2/5.** The randomness in the word generation creates very different levels of difficulty per day and doesn't always strike the right balance. I feel it's often too challenging to make incremental progress at the beginning, and instead depends on you making a breakthrough to find the "right" answer (the words used to generate the board). So it doesn't reward casual gameplay as well as I'd like.
 2. **Scoring: 3/5.** I like that the scoring method gives you incrementally better scores with fewer words, which encourages retrying for an even better score as you gather more information. But even before filling the board, it would be nice to still reward partial completion, like [Connections](https://www.nytimes.com/games/connections) does.
 3. **Pattern: 4/5.** The feel of the game is consistent day over day, but I docked myself a point because the randomness in the board can make it render differently on certain screen sizes, and the design/palette could better focus the eye on current letter options.
 
@@ -60,10 +60,12 @@ Aside from that, I'd want to see how other people like the game and what frustra
 
 ## Changelog
 
-- May 18th - added a hint button, updated dictionary to tune difficulty, adaptive window sizing
-- May 19th - changed deselect button to delete, more scoring dimensions, share button
-- May 22nd - added win streak, tuned game generation, removed unlimited hints
-- May 23rd - state validation for new day, tweak restart and delete button behavior
+```md
+May 18th - added a hint button, updated dictionary to tune difficulty, adaptive window sizing
+May 19th - changed deselect button to delete, more scoring dimensions, share button
+May 22nd - added win streak, tuned game generation, removed unlimited hints
+May 24th - state validation for new day, tweak restart and delete button behavior
+```
 
 [^1]: The game was originally hosted on a cloud provider with a persistent backend so she could view aggregated stats over time. This is now just on a static site with my other projects, more as a demo than anything else.
 
