@@ -111,9 +111,9 @@ body.game-body {
 }
 
 .bl-word-chip {
-  font-weight: 700;
-  font-size: 0.95rem;
-  letter-spacing: 0.05em;
+  font-weight: 600;
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
   color: var(--bl-anchor);
 }
 
@@ -124,11 +124,11 @@ body.game-body {
 }
 
 .bl-current {
-  font-size: 1.6rem;
+  font-size: 2.1rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  min-height: 2.2rem;
+  min-height: 2.5rem;
   text-align: center;
   color: var(--bl-active);
   transition: color 0.15s;
@@ -136,32 +136,39 @@ body.game-body {
 
 .bl-current:empty::before { content: '\00a0'; }
 
+/* Inherits color from .bl-current (--bl-active / coral) so the banner reads
+   as live-status, distinct from the gold word chain above it. */
 .bl-done-banner {
-  color: var(--bl-anchor);
   font-size: 1.1rem;
   letter-spacing: 0.06em;
 }
 
-/* Low-key share affordance tucked after the completion text. vertical-align
-   middle keeps the small label optically centred against the large banner
-   caps instead of dropping to their baseline. */
-.bl-banner-share {
-  margin-left: 0.55rem;
-  vertical-align: middle;
-  position: relative;
-  top: -0.08em;
-  background: none;
-  border: none;
-  padding: 0;
-  font: inherit;
-  font-size: 0.8rem;
+/* Quiet meta row after the praise word: streak + Share share one muted style,
+   dot-separated, so they read as a consistent pair. Sized to match the praise
+   word so the whole banner reads as one seamless line, just muted in colour and
+   weight. text-transform:none undoes the uppercasing inherited from .bl-current. */
+.bl-banner-meta {
+  font-size: 1.1rem;
+  font-weight: 400;
   letter-spacing: 0.04em;
   text-transform: none;
   color: var(--bl-text-soft);
+}
+
+/* Share renders identically to the streak text beside it — same size, colour,
+   weight, case — keeping a permanent underline as its affordance. It inherits
+   type from .bl-banner-meta; only the button reset + underline + hover live here. */
+.bl-banner-share {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
   text-decoration: underline;
   text-underline-offset: 2px;
   cursor: pointer;
-  opacity: 0.7;
+  opacity: 0.85;
   transition: opacity 0.15s;
 }
 
@@ -305,8 +312,8 @@ body.game-body {
   align-items: center;
   gap: 0.45rem;
   background: #fff;
-  border: 1.5px solid #2c2c2c;
-  color: #2c2c2c;
+  border: 1.5px solid var(--bl-stroke);
+  color: var(--bl-stroke);
   padding: 0.55rem 1.3rem;
   border-radius: 999px;
   cursor: pointer;
@@ -318,15 +325,19 @@ body.game-body {
 
 .bl-btn svg { display: block; }
 
-.bl-btn:hover { background: #f5f5f5; }
+.bl-btn:hover { background: var(--bl-bg-accent); }
 .bl-btn:active { transform: scale(0.97); }
 
+/* Primary (Enter) — coral border + text to match the live-word accent.
+   Pops next to the neutral Delete/Restart without needing a fill. */
 .bl-btn--primary {
   border-width: 2px;
   font-weight: 700;
+  border-color: var(--bl-active);
+  color: var(--bl-active);
 }
 
-.bl-btn--primary:hover { background: #e8f1fa; }
+.bl-btn--primary:hover { background: var(--bl-bg-accent); }
 
 /* Modal */
 .bl-modal {
@@ -424,22 +435,22 @@ body.game-body {
     --bl-shadow-hover: 0 6px 8px -1px rgba(0, 0, 0, 0.6);
   }
   .bl-current { color: var(--bl-active); }
-  .bl-done-banner { color: var(--bl-anchor); }
   .bl-word-chip { color: var(--bl-anchor); }
   .bl-toast { color: #ff9c80; }
-  .bl-btn {
-    background: #2a2520;
-    border-color: #d8c9b3;
-    color: #ead8b8;
-  }
+  /* Border + text colour come from --bl-stroke / --bl-active (set on
+     .bl-container above); only the panel background needs a dark override. */
+  .bl-btn { background: #2a2520; }
   .bl-btn:hover { background: #3a3128; }
-  .bl-btn--primary:hover { background: #4a3a25; }
+  .bl-btn--primary:hover { background: #3a3128; }
   .bl-modal-card { background: #1f1a16; color: #ead8b8; }
   .bl-help { border-color: var(--bl-text-soft); color: var(--bl-text-soft); }
   .bl-help:hover { background: #2a2520; }
 }
 
 @media (max-width: 500px) {
-  .bl-current { font-size: 1.3rem; letter-spacing: 0.14em; }
+  .bl-current { font-size: 1.5rem; letter-spacing: 0.14em; }
   .bl-hex text { font-size: 22px; }
+  /* Keep Delete/Restart/Enter on one row at ~360px viewport. */
+  .bl-buttons { gap: 0.5rem; }
+  .bl-btn { padding: 0.55rem 0.9rem; gap: 0.4rem; }
 }

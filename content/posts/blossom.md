@@ -38,6 +38,10 @@ I personally find it pretty difficult to see the solution right away, so there a
 
 ## Game Design
 
+Here's an early mockup of the game showing my attempts at clarifying scoring and available letters via UI elements:
+
+![Early designing of Blossom UI](/images/blossom_design.webp "Blossom UI design")
+
 During the design process for the game, I gained a further appreciation for the elegance of NYT daily word games. Specifically:
 1. Balancing between creating a real challenge that's rewarding to finish without making it frustrating.
 2. A scoring system that rewards effort linearly. It shouldn't be all or nothing, but there's a clear goal to aim for.
@@ -63,11 +67,14 @@ Aside from that, I'd want to see how other people like the game and what frustra
 ```md
 May 18th - added a hint button, updated dictionary to tune difficulty, adaptive window sizing
 May 19th - changed deselect button to delete, more scoring dimensions, share button
-May 22nd - added win streak, tuned game generation, removed unlimited hints
+May 22nd - added win streak, tuned game generation for more variety, removed unlimited hints
 May 24th - state validation for new day, tweak restart and delete button behavior
+May 30th - tuned game generation for more overlap, more compact scoring elements
 ```
 
-[^1]: The game was originally hosted on a cloud provider with a persistent backend so she could view aggregated stats over time. This is now just on a static site with my other projects, more as a demo than anything else.
+Thanks to everyone who's been giving me feedback! Especially mom and Claire who are the biggest Blossom fans.
+
+[^1]: The game was originally hosted on a cloud provider with a persistent backend so she could view aggregated stats over time ([source code](https://github.com/holosam/blossom)). Now it's just on a static site with my other projects, more as a demo than anything else.
 
 [^2]: NYT may have agreed with this take, since they released [Strands](https://www.nytimes.com/games/strands) a few months later with a similar mechanic.
 
