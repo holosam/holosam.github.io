@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: help serve build new-post compress-image clean blossom-solve
+.PHONY: help serve build new-post compress-image clean blossom-solve blossom-remove-word
 
 # Default target
 help: ## Show this help
@@ -27,3 +27,7 @@ clean: ## Remove generated files
 
 blossom-solve: ## Print today's Blossom answer (or pass date=YYYY-MM-DD)
 	@node scripts/blossom-solve.js $(date)
+
+blossom-remove-word: ## Pull word(s) from the Blossom banks + rebuild (usage: make blossom-remove-word word="foo bar")
+	@if [ -z "$(word)" ]; then echo 'Usage: make blossom-remove-word word="foo bar"'; exit 1; fi
+	@node scripts/blossom-remove-word.js $(word)

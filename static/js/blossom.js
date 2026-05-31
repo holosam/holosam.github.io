@@ -225,9 +225,9 @@
         </button>
       </div>
       <div class="bl-modal" id="bl-modal" hidden>
-        <div class="bl-modal-card">
+        <div class="bl-modal-card" role="dialog" aria-modal="true" aria-labelledby="bl-modal-title">
           <button class="bl-modal-close" id="bl-modal-close" aria-label="Close">×</button>
-          <h2>How to play</h2>
+          <h2 id="bl-modal-title">How to play</h2>
           <ol>
             <li>Start at the highlighted tile. Tap adjacent tiles to spell a word, then hit Enter. Each new word begins where the last one ended.</li>
             <li>Previously used tiles can be reused both within a word and across words.</li>
@@ -238,8 +238,8 @@
         </div>
       </div>
       <div class="bl-modal" id="bl-confirm" hidden>
-        <div class="bl-modal-card">
-          <p>Are you sure you want to restart?</p>
+        <div class="bl-modal-card" role="dialog" aria-modal="true" aria-labelledby="bl-confirm-title">
+          <p id="bl-confirm-title">Are you sure you want to restart?</p>
           <label class="bl-confirm-check">
             <input type="checkbox" id="bl-confirm-skip" />
             Don't ask again
@@ -589,7 +589,7 @@
   function showHint() {
     if (state.done) return;
     toast(
-      `One of today's longest words is ${LONGEST_WORD.toUpperCase()}`,
+      `Try ${LONGEST_WORD.toUpperCase()}`,
       3500,
     );
   }
@@ -698,6 +698,54 @@
   document.getElementById("bl-share").addEventListener("click", share);
   document.getElementById("bl-hint-btn").addEventListener("click", showHint);
 
+  // ─── Modal focus management ────────────────────────────────────────────────
+  // Keep keyboard/screen-reader users from getting stranded behind an open
+  // dialog: move focus into it on open, trap Tab inside it, close on Escape, and
+  // hand focus back to whatever opened it on close.
+  let modalReturnFocus = null;
+  function modalFocusables(overlay) {
+    return [
+      ...overlay.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      ),
+    ].filter((el) => !el.disabled && el.offsetParent !== null);
+  }
+  function openModal(overlay) {
+    modalReturnFocus =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    overlay.hidden = false;
+    const f = modalFocusables(overlay);
+    (f[0] || overlay).focus();
+  }
+  function closeModal(overlay) {
+    overlay.hidden = true;
+    if (modalReturnFocus && modalReturnFocus.focus) modalReturnFocus.focus();
+    modalReturnFocus = null;
+  }
+  function wireModalKeys(overlay) {
+    overlay.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        closeModal(overlay);
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const f = modalFocusables(overlay);
+      if (!f.length) return;
+      const first = f[0];
+      const last = f[f.length - 1];
+      // Wrap focus at the ends so Tab can't escape to the page behind.
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    });
+  }
+
   // Restart is destructive, so it confirms first — unless the player has opted
   // out via the dialog's "Don't ask again" checkbox (a one-way preference,
   // cleared only by wiping site data).
@@ -715,25 +763,26 @@
       return;
     }
     document.getElementById("bl-confirm-skip").checked = false;
-    confirmModal.hidden = false;
+    openModal(confirmModal);
   }
+  wireModalKeys(confirmModal);
   document
     .getElementById("bl-restart")
     .addEventListener("click", requestRestart);
   document
     .getElementById("bl-confirm-cancel")
-    .addEventListener("click", () => (confirmModal.hidden = true));
+    .addEventListener("click", () => closeModal(confirmModal));
   document.getElementById("bl-confirm-ok").addEventListener("click", () => {
     if (document.getElementById("bl-confirm-skip").checked) {
       try {
         localStorage.setItem(RESTART_NOCONFIRM_KEY, "1");
       } catch {}
     }
-    confirmModal.hidden = true;
+    closeModal(confirmModal);
     restart();
   });
   confirmModal.addEventListener("click", (e) => {
-    if (e.target === confirmModal) confirmModal.hidden = true;
+    if (e.target === confirmModal) closeModal(confirmModal);
   });
 
   const modal = document.getElementById("bl-modal");
@@ -746,20 +795,21 @@
   try {
     helpSeen = !!localStorage.getItem(HELP_SEEN_KEY);
   } catch {}
+  wireModalKeys(modal);
   if (!helpSeen) {
-    modal.hidden = false;
+    openModal(modal);
     try {
       localStorage.setItem(HELP_SEEN_KEY, "1");
     } catch {}
   }
   document
     .getElementById("bl-help-btn")
-    .addEventListener("click", () => (modal.hidden = false));
+    .addEventListener("click", () => openModal(modal));
   document
     .getElementById("bl-modal-close")
-    .addEventListener("click", () => (modal.hidden = true));
+    .addEventListener("click", () => closeModal(modal));
   modal.addEventListener("click", (e) => {
-    if (e.target === modal) modal.hidden = true;
+    if (e.target === modal) closeModal(modal);
   });
 
   // TODAY_KEY and BOARD are captured at module load. If a tab is left open

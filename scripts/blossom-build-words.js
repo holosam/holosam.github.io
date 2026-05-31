@@ -64,12 +64,28 @@ if (!fs.existsSync(SCOWL_PATH)) {
   process.exit(1);
 }
 
+// Slurs and strong profanity are curated directly out of the source lists
+// (word_bank.txt, and the local scowl-60.txt), so there's no standing blocklist
+// of those words living in the repo. The only list-based filtering here is the
+// algorithmic proper-noun drop below; offensive words are simply absent from the
+// inputs. If you ever re-fetch SCOWL, re-apply that curation to the new file.
 const raw = fs.readFileSync(SCOWL_PATH, 'utf8').split('\n');
 const valid = new Set();
 const onlyLowerLetters = /^[a-z]+$/;
 
+let started = false; // SCOWL prepends a license header, then a `---` separator.
 for (const line of raw) {
-  const w = line.trim().toLowerCase();
+  const trimmed = line.trim();
+  if (!started) {
+    if (trimmed === '---') started = true;
+    continue;
+  }
+  // Proper nouns are capitalized in the source (Paris, Obama, Aachen). Skip
+  // them BEFORE lowercasing — that's the only signal distinguishing them. Words
+  // that are also common nouns keep their separate lowercase entry (China/china,
+  // March/march), so this drops only the proper-noun-only spellings.
+  if (/^[A-Z]/.test(trimmed)) continue;
+  const w = trimmed.toLowerCase();
   if (!onlyLowerLetters.test(w)) continue;
   if (w.length < MIN_LEN || w.length > MAX_LEN) continue;
   valid.add(w);
