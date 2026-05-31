@@ -30,8 +30,8 @@
 // the pipeline is size-agnostic.
 //
 // ─── Generation list (BLOSSOM_GEN_WORDS) ───────────────────────────────────
-// The curated root-word bank, capped at 7 letters to keep daily chains
-// approachable. Long words (8-10) still validate (so a player can play
+// The curated root-word bank, capped at 8 letters to keep daily chains
+// approachable. Longer words (9-10) still validate (so a player can play
 // CONSENSUS if they spot it), they just won't appear as targets.
 //
 // ─── First-time setup: fetching the SCOWL input ────────────────────────────
@@ -55,7 +55,7 @@ const OUT_PATH = path.join(ROOT, 'static/js/blossom-words.js');
 
 const MIN_LEN = 3;
 const MAX_LEN = 12;
-const GEN_MAX_LEN = 7;
+const GEN_MAX_LEN = 8;
 
 if (!fs.existsSync(SCOWL_PATH)) {
   console.error(`Missing ${SCOWL_PATH}.`);

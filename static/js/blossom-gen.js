@@ -88,14 +88,26 @@
 
   function generateBoard(seed, genPool, options) {
     const opts = options || {};
-    const targetTiles = opts.targetTiles || 22;
-    const minTiles = opts.minTiles || 14;
+    const targetTiles = opts.targetTiles || 20;
+    const minTiles = opts.minTiles || 15;
     const maxWords = opts.maxWords || 8;
     // Mild bias toward word lengths not yet used in this board. Each prior use
     // of a length multiplies that length's weight by (1+alpha)^-count, so the
     // first 5-letter word nudges later picks toward other lengths — enough to
     // sway the mix, not enough to override the overlap weighting. Tunable.
     const lengthAlpha = opts.lengthAlpha != null ? opts.lengthAlpha : 0.6;
+    // Intrinsic per-length preference, applied on top of lengthAlpha. Lengths
+    // absent from the map default to 1. The short (3) and long (8) extremes are
+    // damped so they sprinkle in for variety without dominating the mix.
+    const lengthWeight = opts.lengthWeight || { 3: 0.4, 8: 0.4 };
+    // Localized-overlap weighting. When picking the next word, we reward letters
+    // that can reuse a tile already sitting near the junction (the last placed
+    // cell) — and reward the word's *earliest* letters most, since those are the
+    // ones the greedy placer can actually fold back onto an existing tile. This
+    // counters the old whole-board overlap signal, which saturated late in
+    // generation and let the final words wrap the rim on fresh tiles.
+    const localRadius = opts.localRadius != null ? opts.localRadius : 2;
+    const overlapDecay = opts.overlapDecay != null ? opts.overlapDecay : 0.8;
     const targetLetters = targetTiles * 1.5;
     // Runaway guard: cap total word-placement attempts across all backtracking
     // before giving up and reseeding. Normal generation never approaches this.
@@ -195,11 +207,27 @@
       const candidates = (genByFirst[last] || []).filter(w => !used.has(w));
       if (!candidates.length) return tiles.size >= minTiles;
 
-      const prevSet = new Set(allLetters);
+      // Letters sitting on tiles within localRadius of the junction (the last
+      // placed cell). A candidate whose early letters land in this set can fold
+      // back onto an existing tile instead of extending the rim. Unlike the old
+      // whole-board letter set this stays selective late in generation, when the
+      // board already contains most of the alphabet.
+      const junction = seq[seq.length - 1].cellIdx;
+      const localSet = new Set();
+      for (const [cell, letter] of tiles) {
+        if (hexDistance(cell, junction) <= localRadius) localSet.add(letter);
+      }
       const weights = candidates.map(w => {
-        const overlap = [...new Set(w)].filter(l => prevSet.has(l)).length;
+        // Credit each reusable letter, decaying by position so a match on the
+        // word's 2nd letter (first one placed after the shared joint) counts
+        // most. w[0] is the shared joint, so start at index 1.
+        let local = 0;
+        for (let li = 1; li < w.length; li++) {
+          if (localSet.has(w[li])) local += Math.pow(overlapDecay, li - 1);
+        }
         const lengthBonus = Math.pow(1 + lengthAlpha, -(lengthCounts[w.length] || 0));
-        return (overlap * overlap + 0.5) * lengthBonus;
+        const lw = lengthWeight[w.length] != null ? lengthWeight[w.length] : 1;
+        return (local * local + 0.5) * lengthBonus * lw;
       });
       const ordered = weightedShuffle(candidates, weights, rng);
 

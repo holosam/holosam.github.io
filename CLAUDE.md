@@ -20,7 +20,7 @@ Although the author's real name is used on the site, the main brand of the site 
 - **External references** - prefer primary sources, inline-linked.
 
 ### Editorial reviews
-Flag honest critiques by line number:
+Looking for honest critiques. Flag by line number:
 - **Editorial** - structure / story flow makes sense, would anything be embarrassing to present to a technical audience
 - **Content** - factual accuracy, voice consistency, any other concerns you spot
 - **Copy issues** - typos, redundancies, structure
@@ -34,10 +34,10 @@ Use existing posts as canonical reference for voice. Audience is technical.
 
 ## Getting a branch ready for PR
 
-I will test the changes locally using `make serve`.
+I will test the changes locally using `make serve` and do the git operations.
 
 Make sure we run through this checklist before merging:
-- **Libraries** - `brew update` and `brew upgrade` to make sure everything is on the latest version.
+- **Libraries** - `brew update` and `brew upgrade` to make sure everything is on the latest version. If applicable:
   - Update pinned Hugo version
   - Check if the `hugo-book` theme submodule needs to be updated `git submodule update --init --recursive`
 - **Build** - PRs execute `hugo_test_build.yaml`, so make sure these checks pass

@@ -7,8 +7,8 @@
     window.BlossomGen;
 
   // Defensive caps — keep the game from getting into absurd states.
-  const MAX_WORD_LEN = 15; // longest a single selection can grow
-  const WORD_CAP_OVER_TARGET = 20; // hard ceiling on words past target — an anti-abuse guard, not a fail state
+  const MAX_WORD_LEN = 20; // longest a single selection can grow
+  const WORD_CAP_OVER_TARGET = 25; // hard ceiling on words past target — an anti-abuse guard, not a fail state
 
   // ─── Today's board ─────────────────────────────────────────────────────────
   const TODAY = new Date();
@@ -230,7 +230,7 @@
           <h2>How to play</h2>
           <ol>
             <li>Start at the highlighted tile. Tap adjacent tiles to spell a word, then hit Enter. Each new word begins where the last one ended.</li>
-            <li>You can reuse tiles at any time, either within a word or from previous words.</li>
+            <li>Previously used tiles can be reused both within a word and across words.</li>
             <li>Use every tile to win. For extra points, try to use ${BOARD.targetWords} (or fewer) words.</li>
             <li>The Delete button undoes one letter. If you're stuck, tap 💡 for a hint.</li>
           </ol>
@@ -415,31 +415,13 @@
 
     // Words history
     const wl = document.getElementById("bl-words");
-    const used = new Set([BOARD.start]);
-    state.words.forEach((w) => w.cells.forEach((c) => used.add(c)));
-    const tilesUsed = used.size;
-    // Status line — single row, with records folded inline:
-    //   "Target: 7 words [(current: 3[, best: 5])] · 13/30 tiles [(best: 13)]"
-    // Tile-best is only shown until the first completion; after that, the
-    // word-count best lives in the words parens and the tile-best is implied.
+    // The target leads only on a fresh (or restarted) board, then steps aside:
+    // once play starts the board's unbloomed tiles already show what's left and
+    // the gold word-chain below shows what's been played, so a persistent status
+    // line is just redundant noise. The target reappears on restart, when the
+    // word count drops back to zero.
     const wordCount = state.words.length;
-    const wordsExtras = [
-      wordCount > 0 ? `current: ${wordCount}` : "",
-      state.bestWords !== null ? `best: ${state.bestWords}` : "",
-    ]
-      .filter(Boolean)
-      .join(", ");
-    const wordsPart =
-      `Target: ${BOARD.targetWords} words` +
-      (wordsExtras ? ` (${wordsExtras})` : "");
-    const tilesPart =
-      wordCount > 0
-        ? `${tilesUsed}/${BOARD.totalTiles} tiles` +
-          (state.bestWords === null && state.maxTiles > 0
-            ? ` (best: ${state.maxTiles})`
-            : "")
-        : "";
-    const statusTxt = [wordsPart, tilesPart].filter(Boolean).join(" · ");
+    const statusTxt = wordCount === 0 ? `Target ${BOARD.targetWords} words` : "";
 
     wl.innerHTML = `
       <div class="bl-par">${statusTxt}</div>
@@ -448,16 +430,30 @@
       </div>
     `;
 
-    // Done banner — a win is the only end state now. (A pre-change stale state
-    // could be done-but-unfinished; fall back to a neutral message.)
     if (state.done) {
-      const won = tilesUsed >= BOARD.totalTiles;
-      const text = won
-        ? `Complete in ${wordCount} words`
-        : `Round over — ${tilesUsed}/${BOARD.totalTiles} tiles`;
-      const streakBit =
-        records.streak > 0 ? ` · 🔥 ${records.streak} day streak` : "";
-      cw.innerHTML = `<span class="bl-done-banner">${text}${streakBit}<button type="button" class="bl-banner-share" id="bl-banner-share">Share</button></span>`;
+      // state.done is only ever set on a win (submit() has no fail state), so the
+      // board is full here. The praise word carries the result against the target
+      // — which isn't shown now, it returns on restart — so beating the
+      // generator's own chain is rare and earns the loudest cheer.
+      const text =
+        wordCount < BOARD.targetWords
+          ? `Incredible!`
+          : wordCount === BOARD.targetWords
+            ? `Amazing!`
+            : `Nice!`;
+      // Streak + Share render as one quiet, muted, dot-separated row after the
+      // praise, so they read as a consistent pair instead of two competing styles.
+      const streak =
+        records.streak > 0 ? `🔥 ${records.streak} day streak` : "";
+      const meta = [
+        streak,
+        `<button type="button" class="bl-banner-share" id="bl-banner-share">Share</button>`,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+      cw.innerHTML =
+        `<span class="bl-done-banner">${text}` +
+        `<span class="bl-banner-meta"> · ${meta}</span></span>`;
       const sb = document.getElementById("bl-banner-share");
       if (sb) sb.addEventListener("click", share);
     }
