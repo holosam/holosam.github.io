@@ -33,7 +33,7 @@ Audience is technical. Use existing posts as canonical reference for voice.
 ## Coding
 
 - Just because something is there already it doesn't mean it was extremely well thought-out. Think critically and question assumptions
-- Start with proposing the simplest option and we can discuss incrementally adding complexity from there
+- Start with proposing the simplest option (low effort, high impact) and we can discuss adding complexity incrementally from there
 - Comments are not needed when code is self-explanatory. Comments should be used to remember counter-intuitive decisions
 
 ## Getting a branch ready for PR

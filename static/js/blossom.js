@@ -5,9 +5,6 @@
 */
 
 (function () {
-  // Validation list is broad (includes inflections like "began", "runs").
-  // Generation list is the uninflected root-word set — cleaner chains and
-  // avoids embedding hidden plurals/past-tenses in the solution chain.
   const VALID = new Set(window.BLOSSOM_WORDS);
   const { toRC, isAdjacent, generateBoard, seedForDate, dateKey } =
     window.BlossomGen;
@@ -405,6 +402,7 @@
         "bl-active",
         "bl-anchor",
         "bl-adj",
+        "bl-filled",
       );
 
       if (selSet.has(i)) {
@@ -417,6 +415,13 @@
       } else {
         el.classList.add("bl-unused");
       }
+
+      // The "filled" border tracks committed tiles regardless of the
+      // interaction state above, so a previously-used tile keeps the cue even
+      // while it's part of the current word or offered as an adjacency option.
+      // New tiles in the current word aren't in `used` yet, so they stay thin —
+      // which also distinguishes a fresh pick from a re-use.
+      if (usedSet.has(i)) el.classList.add("bl-filled");
 
       // Mark every tile adjacent to the last selected — including ones already
       // in selection — so the player can see what's reachable for re-use.
