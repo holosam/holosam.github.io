@@ -344,6 +344,12 @@ body.game-body {
     opacity: 1;
 }
 
+/* Hints and success messages are informational, not rejections. Double class
+   keeps it ahead of the dark-mode `.bl-toast` colour override below. */
+.bl-toast.bl-toast--info {
+    color: var(--bl-text-soft);
+}
+
 .bl-buttons {
     display: flex;
     gap: 0.75rem;

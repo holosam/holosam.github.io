@@ -1,3 +1,9 @@
+/* Insights from Blossom's initial audience to understand some of the decisions below:
+- >90% mobile only
+- targetWords is meant as a goal for hardcore players, but most casual players just want to fill the board
+- Served purely as a static site with local browser storage. It's possible for players to edit fields or reverse engineer the puzzle's solution, which is fine. It's just for fun.
+*/
+
 (function () {
   // Validation list is broad (includes inflections like "began", "runs").
   // Generation list is the uninflected root-word set — cleaner chains and
@@ -7,10 +13,9 @@
     window.BlossomGen;
 
   // Defensive caps — keep the game from getting into absurd states.
-  const MAX_WORD_LEN = 20; // longest a single selection can grow
-  const WORD_CAP_OVER_TARGET = 25; // hard ceiling on words past target — an anti-abuse guard, not a fail state
+  const MAX_WORD_LEN = 12; // longest word in the dictionary
+  const WORD_CAP_OVER_TARGET = 25;
 
-  // ─── Today's board ─────────────────────────────────────────────────────────
   const TODAY = new Date();
   const TODAY_KEY = dateKey(TODAY);
   // Bump the version when the generator changes so stale state (referencing
@@ -23,6 +28,16 @@
     (a, b) => (b.length > a.length ? b : a),
     "",
   );
+
+  // The generator, dictionary, and today's board now live in this closure, so
+  // drop the window handles the loader left behind. It stops a casual
+  // `BlossomGen.generateBoard(...)` peek at today's solution from the console —
+  // a speed bump, not a lock: the source still ships and can be re-run.
+  try {
+    delete window.BlossomGen;
+    delete window.BLOSSOM_WORDS;
+    delete window.BLOSSOM_GEN_WORDS;
+  } catch {}
 
   // Each day leaves behind its own state key; sweep stale ones so storage
   // doesn't accumulate a key per day forever. (Sizes are tiny, but tidy.)
@@ -193,13 +208,13 @@
         </div>
       </div>
       <div class="bl-words" id="bl-words"></div>
-      <div class="bl-current" id="bl-current">&nbsp;</div>
+      <div class="bl-current" id="bl-current" aria-live="polite" aria-atomic="true">&nbsp;</div>
       <div class="bl-grid-wrap">
         <div class="bl-grid-aspect" id="bl-grid-aspect">
           <svg id="bl-grid" class="bl-grid" xmlns="http://www.w3.org/2000/svg"></svg>
         </div>
       </div>
-      <div class="bl-toast" id="bl-toast"></div>
+      <div class="bl-toast" id="bl-toast" role="status" aria-live="polite" aria-atomic="true"></div>
       <div class="bl-buttons">
         <button class="bl-btn" id="bl-delete">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -231,10 +246,11 @@
           <ol>
             <li>Start at the highlighted tile. Tap adjacent tiles to spell a word, then hit Enter. Each new word begins where the last one ended.</li>
             <li>Previously used tiles can be reused both within a word and across words.</li>
-            <li>Use every tile to win. For extra points, try to use ${BOARD.targetWords} (or fewer) words.</li>
+            <li>Keep linking words until every tile is used. Try to use as few words as possible for bragging rights.</li>
             <li>The Delete button undoes one letter. If you're stuck, tap 💡 for a hint.</li>
           </ol>
           <p class="bl-modal-foot">The board resets at midnight, so come back tomorrow to play a new one!</p>
+          <p class="bl-modal-foot"><a href="/posts/blossom/">Read the story behind Blossom</a>.</p>
         </div>
       </div>
       <div class="bl-modal" id="bl-confirm" hidden>
@@ -415,13 +431,13 @@
 
     // Words history
     const wl = document.getElementById("bl-words");
-    // The target leads only on a fresh (or restarted) board, then steps aside:
-    // once play starts the board's unbloomed tiles already show what's left and
-    // the gold word-chain below shows what's been played, so a persistent status
-    // line is just redundant noise. The target reappears on restart, when the
-    // word count drops back to zero.
+    // The goal nudge leads only on a fresh (or restarted) board, then steps
+    // aside: once play starts the board's unbloomed tiles already show what's
+    // left and the gold word-chain below shows what's been played, so a
+    // persistent status line is just redundant noise. It reappears on restart,
+    // when the word count drops back to zero.
     const wordCount = state.words.length;
-    const statusTxt = wordCount === 0 ? `Target ${BOARD.targetWords} words` : "";
+    const statusTxt = wordCount === 0 ? "Use every tile to win" : "";
 
     wl.innerHTML = `
       <div class="bl-par">${statusTxt}</div>
@@ -432,8 +448,8 @@
 
     if (state.done) {
       // state.done is only ever set on a win (submit() has no fail state), so the
-      // board is full here. The praise word carries the result against the target
-      // — which isn't shown now, it returns on restart — so beating the
+      // board is full here. The target itself is never shown — the praise word is
+      // the only score signal, scaling with how few words it took. Beating the
       // generator's own chain is rare and earns the loudest cheer.
       const text =
         wordCount < BOARD.targetWords
@@ -461,9 +477,12 @@
 
   // ─── Toast ─────────────────────────────────────────────────────────────────
   let toastTimer;
-  function toast(msg, ms = 1600) {
+  // tone "error" (default) reads coral-red; "info" reads neutral, so hints and
+  // success messages don't masquerade as rejections.
+  function toast(msg, { tone = "error", ms = 1600 } = {}) {
     const el = document.getElementById("bl-toast");
     el.textContent = msg;
+    el.classList.toggle("bl-toast--info", tone === "info");
     el.classList.add("bl-toast--on");
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => el.classList.remove("bl-toast--on"), ms);
@@ -588,10 +607,10 @@
 
   function showHint() {
     if (state.done) return;
-    toast(
-      `Try ${LONGEST_WORD.toUpperCase()}`,
-      3500,
-    );
+    toast(`The word ${LONGEST_WORD.toUpperCase()} is possible today`, {
+      tone: "info",
+      ms: 3500,
+    });
   }
 
   // Build the shareable score string. Once the board has been completed today,
@@ -604,7 +623,8 @@
   //   🌸 = a word entered  (counts up to target)
   //   ⚪ = a target slot still open  (mid-game or bust — replaced by 🏆 on a win)
   //   🏆 = beat target by this many words  (under-target win — the rare brag)
-  //   🥀 = a word past target  (overshoot)
+  //   🌿 = a word past target  (overshoot — greenery, not a wilt; the goal is to
+  //        fill the board, so going long is fine, just not a brag)
   // Non-winning states append the tile fraction so the receiver can tell
   // whether you actually finished the board.
   function shareText() {
@@ -618,11 +638,11 @@
       : new Set([BOARD.start, ...state.words.flatMap((w) => w.cells)]).size;
     const blooms = Math.min(used, target);
     const filler = Math.max(0, target - used);
-    // Cap the wilt run so a runaway overshoot can't balloon the share text.
-    const wilts = Math.min(Math.max(0, used - target), 10);
+    // Cap the overshoot run so a runaway count can't balloon the share text.
+    const extras = Math.min(Math.max(0, used - target), 10);
     const fillerChar = won ? "🏆" : "⚪";
     const bouquet =
-      "🌸".repeat(blooms) + fillerChar.repeat(filler) + "🥀".repeat(wilts);
+      "🌸".repeat(blooms) + fillerChar.repeat(filler) + "🌿".repeat(extras);
     // The bouquet already encodes the score; a win is just the flowers, while
     // unfinished games still need the tile fraction to show progress.
     const line = won
@@ -649,7 +669,9 @@
       ta.select();
       const ok = document.execCommand("copy");
       document.body.removeChild(ta);
-      toast(ok ? "Copied to clipboard" : "Couldn't copy — try again");
+      toast(ok ? "Copied to clipboard" : "Couldn't copy — try again", {
+        tone: ok ? "info" : "error",
+      });
     } catch {
       toast("Couldn't copy — try again");
     }
@@ -665,7 +687,7 @@
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard
         .writeText(text)
-        .then(() => toast("Copied to clipboard"))
+        .then(() => toast("Copied to clipboard", { tone: "info" }))
         .catch(() => toast("Couldn't copy — try again"));
       return;
     }

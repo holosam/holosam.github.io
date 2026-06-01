@@ -70,6 +70,7 @@ May 19th - changed deselect button to delete, more scoring dimensions, share but
 May 22nd - added win streak, tuned game generation for more variety, removed unlimited hints
 May 24th - state validation for new day, tweak restart and delete button behavior
 May 30th - tuned game generation for more overlap, more compact scoring elements
+May 31st - prune dictionary, minor accessibility improvements
 ```
 
 Thanks to everyone who's been giving me feedback! Espcially my family for helping me make it playable, and my friends for the encouragement.
