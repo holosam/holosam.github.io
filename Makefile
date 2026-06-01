@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: help serve build new-post compress-image clean blossom-solve
+.PHONY: help serve build new-post compress-image clean blossom-solve blossom-remove-word
 
 # Default target
 help: ## Show this help

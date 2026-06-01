@@ -1,15 +1,13 @@
 **/.DS_Store
 
-.vscode/
-
 # Hugo files
 .hugo_build.lock
 /public/
 /resources/_gen/
 /assets/jsconfig.json
 
-IDEAS.md
+# Accessed locally only
+.vscode/
+/personal/
 /tmp/
-
-# Blossom: raw SCOWL dump is a build input, re-fetched via `make blossom-words-fetch`
 /assets/blossom/scowl-60.txt

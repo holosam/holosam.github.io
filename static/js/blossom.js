@@ -1,16 +1,18 @@
+/* Insights from Blossom's initial audience to understand some of the decisions below:
+- >90% mobile only
+- targetWords is meant as a goal for hardcore players, but most casual players just want to fill the board
+- Served purely as a static site with local browser storage. It's possible for players to edit fields or reverse engineer the puzzle's solution, which is fine. It's just for fun.
+*/
+
 (function () {
-  // Validation list is broad (includes inflections like "began", "runs").
-  // Generation list is the uninflected root-word set — cleaner chains and
-  // avoids embedding hidden plurals/past-tenses in the solution chain.
   const VALID = new Set(window.BLOSSOM_WORDS);
   const { toRC, isAdjacent, generateBoard, seedForDate, dateKey } =
     window.BlossomGen;
 
   // Defensive caps — keep the game from getting into absurd states.
-  const MAX_WORD_LEN = 20; // longest a single selection can grow
-  const WORD_CAP_OVER_TARGET = 25; // hard ceiling on words past target — an anti-abuse guard, not a fail state
+  const MAX_WORD_LEN = 12; // longest word in the dictionary
+  const WORD_CAP_OVER_TARGET = 25;
 
-  // ─── Today's board ─────────────────────────────────────────────────────────
   const TODAY = new Date();
   const TODAY_KEY = dateKey(TODAY);
   // Bump the version when the generator changes so stale state (referencing
@@ -23,6 +25,16 @@
     (a, b) => (b.length > a.length ? b : a),
     "",
   );
+
+  // The generator, dictionary, and today's board now live in this closure, so
+  // drop the window handles the loader left behind. It stops a casual
+  // `BlossomGen.generateBoard(...)` peek at today's solution from the console —
+  // a speed bump, not a lock: the source still ships and can be re-run.
+  try {
+    delete window.BlossomGen;
+    delete window.BLOSSOM_WORDS;
+    delete window.BLOSSOM_GEN_WORDS;
+  } catch {}
 
   // Each day leaves behind its own state key; sweep stale ones so storage
   // doesn't accumulate a key per day forever. (Sizes are tiny, but tidy.)
@@ -193,13 +205,13 @@
         </div>
       </div>
       <div class="bl-words" id="bl-words"></div>
-      <div class="bl-current" id="bl-current">&nbsp;</div>
+      <div class="bl-current" id="bl-current" aria-live="polite" aria-atomic="true">&nbsp;</div>
       <div class="bl-grid-wrap">
         <div class="bl-grid-aspect" id="bl-grid-aspect">
           <svg id="bl-grid" class="bl-grid" xmlns="http://www.w3.org/2000/svg"></svg>
         </div>
       </div>
-      <div class="bl-toast" id="bl-toast"></div>
+      <div class="bl-toast" id="bl-toast" role="status" aria-live="polite" aria-atomic="true"></div>
       <div class="bl-buttons">
         <button class="bl-btn" id="bl-delete">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -225,21 +237,22 @@
         </button>
       </div>
       <div class="bl-modal" id="bl-modal" hidden>
-        <div class="bl-modal-card">
+        <div class="bl-modal-card" role="dialog" aria-modal="true" aria-labelledby="bl-modal-title">
           <button class="bl-modal-close" id="bl-modal-close" aria-label="Close">×</button>
-          <h2>How to play</h2>
+          <h2 id="bl-modal-title">How to play</h2>
           <ol>
             <li>Start at the highlighted tile. Tap adjacent tiles to spell a word, then hit Enter. Each new word begins where the last one ended.</li>
             <li>Previously used tiles can be reused both within a word and across words.</li>
-            <li>Use every tile to win. For extra points, try to use ${BOARD.targetWords} (or fewer) words.</li>
+            <li>Keep linking words until every tile is used. Try to use as few words as possible for bragging rights.</li>
             <li>The Delete button undoes one letter. If you're stuck, tap 💡 for a hint.</li>
           </ol>
           <p class="bl-modal-foot">The board resets at midnight, so come back tomorrow to play a new one!</p>
+          <p class="bl-modal-foot"><a href="/posts/blossom/">Read the story behind Blossom</a>.</p>
         </div>
       </div>
       <div class="bl-modal" id="bl-confirm" hidden>
-        <div class="bl-modal-card">
-          <p>Are you sure you want to restart?</p>
+        <div class="bl-modal-card" role="dialog" aria-modal="true" aria-labelledby="bl-confirm-title">
+          <p id="bl-confirm-title">Are you sure you want to restart?</p>
           <label class="bl-confirm-check">
             <input type="checkbox" id="bl-confirm-skip" />
             Don't ask again
@@ -389,6 +402,7 @@
         "bl-active",
         "bl-anchor",
         "bl-adj",
+        "bl-filled",
       );
 
       if (selSet.has(i)) {
@@ -401,6 +415,13 @@
       } else {
         el.classList.add("bl-unused");
       }
+
+      // The "filled" border tracks committed tiles regardless of the
+      // interaction state above, so a previously-used tile keeps the cue even
+      // while it's part of the current word or offered as an adjacency option.
+      // New tiles in the current word aren't in `used` yet, so they stay thin —
+      // which also distinguishes a fresh pick from a re-use.
+      if (usedSet.has(i)) el.classList.add("bl-filled");
 
       // Mark every tile adjacent to the last selected — including ones already
       // in selection — so the player can see what's reachable for re-use.
@@ -415,13 +436,13 @@
 
     // Words history
     const wl = document.getElementById("bl-words");
-    // The target leads only on a fresh (or restarted) board, then steps aside:
-    // once play starts the board's unbloomed tiles already show what's left and
-    // the gold word-chain below shows what's been played, so a persistent status
-    // line is just redundant noise. The target reappears on restart, when the
-    // word count drops back to zero.
+    // The goal nudge leads only on a fresh (or restarted) board, then steps
+    // aside: once play starts the board's unbloomed tiles already show what's
+    // left and the gold word-chain below shows what's been played, so a
+    // persistent status line is just redundant noise. It reappears on restart,
+    // when the word count drops back to zero.
     const wordCount = state.words.length;
-    const statusTxt = wordCount === 0 ? `Target ${BOARD.targetWords} words` : "";
+    const statusTxt = wordCount === 0 ? "Use every tile to win" : "";
 
     wl.innerHTML = `
       <div class="bl-par">${statusTxt}</div>
@@ -432,8 +453,8 @@
 
     if (state.done) {
       // state.done is only ever set on a win (submit() has no fail state), so the
-      // board is full here. The praise word carries the result against the target
-      // — which isn't shown now, it returns on restart — so beating the
+      // board is full here. The target itself is never shown — the praise word is
+      // the only score signal, scaling with how few words it took. Beating the
       // generator's own chain is rare and earns the loudest cheer.
       const text =
         wordCount < BOARD.targetWords
@@ -461,9 +482,12 @@
 
   // ─── Toast ─────────────────────────────────────────────────────────────────
   let toastTimer;
-  function toast(msg, ms = 1600) {
+  // tone "error" (default) reads coral-red; "info" reads neutral, so hints and
+  // success messages don't masquerade as rejections.
+  function toast(msg, { tone = "error", ms = 1600 } = {}) {
     const el = document.getElementById("bl-toast");
     el.textContent = msg;
+    el.classList.toggle("bl-toast--info", tone === "info");
     el.classList.add("bl-toast--on");
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => el.classList.remove("bl-toast--on"), ms);
@@ -588,10 +612,10 @@
 
   function showHint() {
     if (state.done) return;
-    toast(
-      `One of today's longest words is ${LONGEST_WORD.toUpperCase()}`,
-      3500,
-    );
+    toast(`The word ${LONGEST_WORD.toUpperCase()} is possible today`, {
+      tone: "info",
+      ms: 3500,
+    });
   }
 
   // Build the shareable score string. Once the board has been completed today,
@@ -604,7 +628,8 @@
   //   🌸 = a word entered  (counts up to target)
   //   ⚪ = a target slot still open  (mid-game or bust — replaced by 🏆 on a win)
   //   🏆 = beat target by this many words  (under-target win — the rare brag)
-  //   🥀 = a word past target  (overshoot)
+  //   🌿 = a word past target  (overshoot — greenery, not a wilt; the goal is to
+  //        fill the board, so going long is fine, just not a brag)
   // Non-winning states append the tile fraction so the receiver can tell
   // whether you actually finished the board.
   function shareText() {
@@ -618,11 +643,11 @@
       : new Set([BOARD.start, ...state.words.flatMap((w) => w.cells)]).size;
     const blooms = Math.min(used, target);
     const filler = Math.max(0, target - used);
-    // Cap the wilt run so a runaway overshoot can't balloon the share text.
-    const wilts = Math.min(Math.max(0, used - target), 10);
+    // Cap the overshoot run so a runaway count can't balloon the share text.
+    const extras = Math.min(Math.max(0, used - target), 10);
     const fillerChar = won ? "🏆" : "⚪";
     const bouquet =
-      "🌸".repeat(blooms) + fillerChar.repeat(filler) + "🥀".repeat(wilts);
+      "🌸".repeat(blooms) + fillerChar.repeat(filler) + "🌿".repeat(extras);
     // The bouquet already encodes the score; a win is just the flowers, while
     // unfinished games still need the tile fraction to show progress.
     const line = won
@@ -649,7 +674,9 @@
       ta.select();
       const ok = document.execCommand("copy");
       document.body.removeChild(ta);
-      toast(ok ? "Copied to clipboard" : "Couldn't copy — try again");
+      toast(ok ? "Copied to clipboard" : "Couldn't copy — try again", {
+        tone: ok ? "info" : "error",
+      });
     } catch {
       toast("Couldn't copy — try again");
     }
@@ -665,7 +692,7 @@
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard
         .writeText(text)
-        .then(() => toast("Copied to clipboard"))
+        .then(() => toast("Copied to clipboard", { tone: "info" }))
         .catch(() => toast("Couldn't copy — try again"));
       return;
     }
@@ -698,6 +725,54 @@
   document.getElementById("bl-share").addEventListener("click", share);
   document.getElementById("bl-hint-btn").addEventListener("click", showHint);
 
+  // ─── Modal focus management ────────────────────────────────────────────────
+  // Keep keyboard/screen-reader users from getting stranded behind an open
+  // dialog: move focus into it on open, trap Tab inside it, close on Escape, and
+  // hand focus back to whatever opened it on close.
+  let modalReturnFocus = null;
+  function modalFocusables(overlay) {
+    return [
+      ...overlay.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      ),
+    ].filter((el) => !el.disabled && el.offsetParent !== null);
+  }
+  function openModal(overlay) {
+    modalReturnFocus =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    overlay.hidden = false;
+    const f = modalFocusables(overlay);
+    (f[0] || overlay).focus();
+  }
+  function closeModal(overlay) {
+    overlay.hidden = true;
+    if (modalReturnFocus && modalReturnFocus.focus) modalReturnFocus.focus();
+    modalReturnFocus = null;
+  }
+  function wireModalKeys(overlay) {
+    overlay.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        closeModal(overlay);
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const f = modalFocusables(overlay);
+      if (!f.length) return;
+      const first = f[0];
+      const last = f[f.length - 1];
+      // Wrap focus at the ends so Tab can't escape to the page behind.
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    });
+  }
+
   // Restart is destructive, so it confirms first — unless the player has opted
   // out via the dialog's "Don't ask again" checkbox (a one-way preference,
   // cleared only by wiping site data).
@@ -715,25 +790,26 @@
       return;
     }
     document.getElementById("bl-confirm-skip").checked = false;
-    confirmModal.hidden = false;
+    openModal(confirmModal);
   }
+  wireModalKeys(confirmModal);
   document
     .getElementById("bl-restart")
     .addEventListener("click", requestRestart);
   document
     .getElementById("bl-confirm-cancel")
-    .addEventListener("click", () => (confirmModal.hidden = true));
+    .addEventListener("click", () => closeModal(confirmModal));
   document.getElementById("bl-confirm-ok").addEventListener("click", () => {
     if (document.getElementById("bl-confirm-skip").checked) {
       try {
         localStorage.setItem(RESTART_NOCONFIRM_KEY, "1");
       } catch {}
     }
-    confirmModal.hidden = true;
+    closeModal(confirmModal);
     restart();
   });
   confirmModal.addEventListener("click", (e) => {
-    if (e.target === confirmModal) confirmModal.hidden = true;
+    if (e.target === confirmModal) closeModal(confirmModal);
   });
 
   const modal = document.getElementById("bl-modal");
@@ -746,20 +822,21 @@
   try {
     helpSeen = !!localStorage.getItem(HELP_SEEN_KEY);
   } catch {}
+  wireModalKeys(modal);
   if (!helpSeen) {
-    modal.hidden = false;
+    openModal(modal);
     try {
       localStorage.setItem(HELP_SEEN_KEY, "1");
     } catch {}
   }
   document
     .getElementById("bl-help-btn")
-    .addEventListener("click", () => (modal.hidden = false));
+    .addEventListener("click", () => openModal(modal));
   document
     .getElementById("bl-modal-close")
-    .addEventListener("click", () => (modal.hidden = true));
+    .addEventListener("click", () => closeModal(modal));
   modal.addEventListener("click", (e) => {
-    if (e.target === modal) modal.hidden = true;
+    if (e.target === modal) closeModal(modal);
   });
 
   // TODAY_KEY and BOARD are captured at module load. If a tab is left open

@@ -4,7 +4,7 @@
 (function (root) {
   function mulberry32(seed) {
     return function () {
-      seed = (seed + 0x6D2B79F5) | 0;
+      seed = (seed + 0x6d2b79f5) | 0;
       let t = seed;
       t = Math.imul(t ^ (t >>> 15), t | 1);
       t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
@@ -14,8 +14,8 @@
 
   function dateKey(d) {
     const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
     return `${y}-${m}-${day}`;
   }
 
@@ -34,14 +34,17 @@
   // with a col shift that keeps pointy-top hexes aligned.
   const GRID = 12;
   const idx = (r, c) => r * GRID + c;
-  const toRC = i => [Math.floor(i / GRID), i % GRID];
+  const toRC = (i) => [Math.floor(i / GRID), i % GRID];
 
   function neighbors(i) {
     const [r, c] = toRC(i);
     return [
-      [r, c - 1], [r, c + 1],
-      [r - 1, c], [r - 1, c + 1],
-      [r + 1, c - 1], [r + 1, c],
+      [r, c - 1],
+      [r, c + 1],
+      [r - 1, c],
+      [r - 1, c + 1],
+      [r + 1, c - 1],
+      [r + 1, c],
     ]
       .filter(([rr, cc]) => rr >= 0 && rr < GRID && cc >= 0 && cc < GRID)
       .map(([rr, cc]) => idx(rr, cc));
@@ -88,7 +91,7 @@
 
   function generateBoard(seed, genPool, options) {
     const opts = options || {};
-    const targetTiles = opts.targetTiles || 20;
+    const targetTiles = opts.targetTiles || 21;
     const minTiles = opts.minTiles || 15;
     const maxWords = opts.maxWords || 8;
     // Mild bias toward word lengths not yet used in this board. Each prior use
@@ -154,10 +157,12 @@
       let bestDist = Infinity;
       for (const n of nbrs) {
         if (tiles.has(n)) continue;
-        const filledNeighbors = neighbors(n).filter(x => tiles.has(x)).length;
+        const filledNeighbors = neighbors(n).filter((x) => tiles.has(x)).length;
         const dist = hexDistance(n, start);
-        if (filledNeighbors > bestScore ||
-            (filledNeighbors === bestScore && dist < bestDist)) {
+        if (
+          filledNeighbors > bestScore ||
+          (filledNeighbors === bestScore && dist < bestDist)
+        ) {
           bestScore = filledNeighbors;
           bestDist = dist;
           best = n;
@@ -204,7 +209,7 @@
         return tiles.size >= minTiles;
       }
       const last = chain[chain.length - 1].slice(-1);
-      const candidates = (genByFirst[last] || []).filter(w => !used.has(w));
+      const candidates = (genByFirst[last] || []).filter((w) => !used.has(w));
       if (!candidates.length) return tiles.size >= minTiles;
 
       // Letters sitting on tiles within localRadius of the junction (the last
@@ -217,7 +222,7 @@
       for (const [cell, letter] of tiles) {
         if (hexDistance(cell, junction) <= localRadius) localSet.add(letter);
       }
-      const weights = candidates.map(w => {
+      const weights = candidates.map((w) => {
         // Credit each reusable letter, decaying by position so a match on the
         // word's 2nd letter (first one placed after the shared joint) counts
         // most. w[0] is the shared joint, so start at index 1.
@@ -225,7 +230,10 @@
         for (let li = 1; li < w.length; li++) {
           if (localSet.has(w[li])) local += Math.pow(overlapDecay, li - 1);
         }
-        const lengthBonus = Math.pow(1 + lengthAlpha, -(lengthCounts[w.length] || 0));
+        const lengthBonus = Math.pow(
+          1 + lengthAlpha,
+          -(lengthCounts[w.length] || 0),
+        );
         const lw = lengthWeight[w.length] != null ? lengthWeight[w.length] : 1;
         return (local * local + 0.5) * lengthBonus * lw;
       });
@@ -263,7 +271,7 @@
       chain = [];
       used = new Set();
       lengthCounts = {};
-      allLetters = '';
+      allLetters = "";
 
       const res = placeWord(seedWord, true);
       if (!res.ok) continue;
@@ -278,8 +286,8 @@
           tiles: new Map(tiles),
           seq: seq.slice(),
           start,
-          targetWords: chain.length,     // ideal # of words to complete
-          totalTiles: tiles.size,        // # of tiles on the board
+          targetWords: chain.length, // ideal # of words to complete
+          totalTiles: tiles.size, // # of tiles on the board
         };
       }
     }
@@ -289,14 +297,21 @@
   }
 
   const api = {
-    mulberry32, seedForDate, dateKey,
-    GRID, idx, toRC, neighbors, isAdjacent, hexDistance,
+    mulberry32,
+    seedForDate,
+    dateKey,
+    GRID,
+    idx,
+    toRC,
+    neighbors,
+    isAdjacent,
+    hexDistance,
     generateBoard,
   };
 
-  if (typeof module !== 'undefined' && module.exports) {
+  if (typeof module !== "undefined" && module.exports) {
     module.exports = api;
   } else {
     root.BlossomGen = api;
   }
-})(typeof window !== 'undefined' ? window : globalThis);
+})(typeof window !== "undefined" ? window : globalThis);
