@@ -6,11 +6,12 @@ It's served purely as a static site with local browser storage.
 
 ## Relevant source
 
+- `assets/js/` - (this directory) core source code
 - `assets/blossom/` - word banks
 - `content/games/` - url for accessing the game on the site
 - `content/posts/blossom.md` - my post describing the history of the game
+- `layouts/shortcodes/blossom-scripts.html` - loads this JS (see "Serving" below)
 - `scripts/` - one-off tools relating to word banks and game simulation
-- `static/js/` - (this directory) core source code
 - `static/css/` - style
 
 ## Philosophy

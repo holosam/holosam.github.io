@@ -5,7 +5,7 @@ This is a personal blog hosted at https://holosam.dev/, built using Hugo.
 ## Relevant files
 - `content/_index.md` - homepage
 - `content/posts/` - all content
-- `static/js` - source code for games
+- `assets/js` - source code for games (served via Hugo's fingerprint pipeline)
 - `Makefile` - common commands
 
 ## Branding

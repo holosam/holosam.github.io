@@ -1,0 +1,24 @@
+{{- /*
+  Loads Blossom's JS through Hugo's asset pipeline (minify + fingerprint).
+
+  Why this exists: the board is generated client-side, so it's a pure function
+  of the date, the generator code, and the word bank. If two players run
+  different versions of these files they get different boards for the same day.
+  A plain <script src="/js/foo.js"> is cached by URL, so a stale browser/CDN
+  copy can keep serving old code after a deploy.
+
+  fingerprint hashes each file's contents into its filename
+  (e.g. blossom-gen.<hash>.js). Change one byte -> new hash -> new URL ->
+  every cache is bypassed automatically. No manual cache-busting to remember.
+  integrity adds Subresource Integrity so a tampered file is rejected.
+
+  Source of truth lives in assets/js/ (resources.Get reads from assets/, not
+  static/). Load order matters: words and gen must define their globals before
+  blossom.js consumes them.
+*/ -}}
+{{- $words := resources.Get "js/blossom-words.js" | minify | fingerprint -}}
+{{- $gen := resources.Get "js/blossom-gen.js" | minify | fingerprint -}}
+{{- $game := resources.Get "js/blossom.js" | minify | fingerprint -}}
+<script src="{{ $words.RelPermalink }}" integrity="{{ $words.Data.Integrity }}"></script>
+<script src="{{ $gen.RelPermalink }}" integrity="{{ $gen.Data.Integrity }}"></script>
+<script src="{{ $game.RelPermalink }}" integrity="{{ $game.Data.Integrity }}"></script>

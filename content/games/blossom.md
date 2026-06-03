@@ -5,6 +5,4 @@ description: "Daily word chain on a hex grid. Spell adjacent letters, link words
 ---
 
 <div id="blossom-game"></div>
-<script src="/js/blossom-words.js"></script>
-<script src="/js/blossom-gen.js"></script>
-<script src="/js/blossom.js"></script>
+{{< blossom-scripts >}}
