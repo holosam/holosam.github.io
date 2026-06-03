@@ -32,6 +32,7 @@ body.game-body {
     --bl-active: #f08a4b; /* vivid coral */
     --bl-anchor: #c2461a; /* deep amber border */
     --bl-bg-accent: #fff7ec;
+    --bl-focus: #1f6feb; /* keyboard focus ring */
     --bl-shadow: 0 3px 4px -1px rgba(120, 60, 20, 0.22);
     --bl-shadow-hover: 0 5px 6px -1px rgba(120, 60, 20, 0.28);
 
@@ -318,6 +319,19 @@ body.game-body {
     stroke-width: 2.6;
 }
 
+/* Keyboard focus ring, drawn on the focused tile's polygon. :focus-visible
+   keeps it keyboard-only — pointer users already get the coral active-tile cue,
+   so a tap shouldn't leave a ring behind. paint-order:stroke keeps the letter
+   legible beneath the thick stroke. */
+.bl-hex:focus {
+    outline: none;
+}
+.bl-hex:focus-visible polygon {
+    stroke: var(--bl-focus);
+    stroke-width: 4;
+    paint-order: stroke;
+}
+
 /* Bloom animation — fires on the cells of a just-entered word.
    Both polygon and text scale together so the letter blooms with the tile. */
 .bl-hex.bl-bloom polygon,
@@ -520,6 +534,7 @@ body.game-body {
         --bl-active: #ff8a3d; /* coral bloom */
         --bl-anchor: #ffc24a; /* gold */
         --bl-bg-accent: #2a2520;
+        --bl-focus: #6ab0ff; /* keyboard focus ring, lifted for dark bg */
         --bl-shadow: 0 4px 5px -1px rgba(0, 0, 0, 0.55);
         --bl-shadow-hover: 0 6px 8px -1px rgba(0, 0, 0, 0.6);
     }

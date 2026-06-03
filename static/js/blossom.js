@@ -1,9 +1,3 @@
-/* Insights from Blossom's initial audience to understand some of the decisions below:
-- >90% mobile only
-- targetWords is meant as a goal for hardcore players, but most casual players just want to fill the board
-- Served purely as a static site with local browser storage. It's possible for players to edit fields or reverse engineer the puzzle's solution, which is fine. It's just for fun.
-*/
-
 (function () {
   const VALID = new Set(window.BLOSSOM_WORDS);
   const { toRC, isAdjacent, generateBoard, seedForDate, dateKey } =
@@ -327,6 +321,12 @@
       const g = document.createElementNS(SVG_NS, "g");
       g.setAttribute("class", "bl-hex");
       g.setAttribute("data-i", i);
+      // Each tile is an operable button: role/aria-label make it announce as a
+      // button to assistive tech (and let a keyboard or screen-reader user
+      // play). tabindex starts at -1; render() promotes the current entry tile
+      // to 0 (roving tabindex) so Tab enters the grid at one stop, not 21.
+      g.setAttribute("role", "button");
+      g.setAttribute("tabindex", "-1");
 
       const poly = document.createElementNS(SVG_NS, "polygon");
       poly.setAttribute("points", hexPoints(x, y));
@@ -340,15 +340,13 @@
 
       g.appendChild(poly);
       g.appendChild(text);
+      // Per-element listeners rather than one delegated handler on the SVG:
+      // reading the focused tile back off document.activeElement is unreliable
+      // for SVG nodes across browsers, so bind directly and close over `i`.
+      g.addEventListener("click", () => onTileClick(i));
+      g.addEventListener("keydown", (e) => onTileKey(e, i));
       svg.appendChild(g);
     }
-
-    svg.addEventListener("click", (e) => {
-      let t = e.target;
-      if (!t.classList.contains("bl-hex")) t = t.closest(".bl-hex");
-      if (!t) return;
-      onTileClick(parseInt(t.getAttribute("data-i"), 10));
-    });
   }
 
   // ─── Current selection ─────────────────────────────────────────────────────
@@ -384,6 +382,105 @@
 
     selection.push(i);
     render();
+  }
+
+  // ─── Keyboard navigation ─────────────────────────────────────────────────
+  // Arrow keys move focus to the nearest tile in that direction; Enter/Space
+  // activate the focused tile. (SVG groups, unlike real <button>s, don't fire a
+  // click on Enter/Space, so it's wired explicitly.) Focus only follows a
+  // change, so a rejected (non-adjacent) Enter leaves the cursor put instead of
+  // yanking it to the active tile.
+  const ARROW_DIRS = {
+    ArrowLeft: [-1, 0],
+    ArrowRight: [1, 0],
+    ArrowUp: [0, -1],
+    ArrowDown: [0, 1],
+  };
+
+  function onTileKey(e, i) {
+    if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+      e.preventDefault();
+      const before = selection.length;
+      onTileClick(i);
+      if (selection.length !== before) {
+        focusTile(selection[selection.length - 1]);
+      }
+      return;
+    }
+    const dir = ARROW_DIRS[e.key];
+    if (!dir) return;
+    e.preventDefault();
+    const next = nearestTile(i, dir);
+    if (next != null) focusTile(next);
+  }
+
+  // Closest tile within a ~60° cone of the pressed direction. Geometric rather
+  // than neighbor-based, so four arrow keys map cleanly onto a six-neighbour hex
+  // grid and skip over gaps to the next real tile.
+  //
+  // Tie-breaking matters: on this lattice the due-east and up-right neighbours
+  // sit at the *same* distance, so "nearest" alone is a coin flip between them.
+  // We rank candidates by, in order:
+  //   1. nearest (one step, not a far jump),
+  //   2. best aligned to the pressed direction (→ favours due-east over up-right),
+  //   3. larger signed perpendicular `cross` — i.e. the same side of the arrow.
+  // That last rule keeps each axis self-consistent AND makes opposite arrows
+  // exact inverses: ↑ takes the left of the two upper tiles, ↓ the right of the
+  // two lower tiles, so ↑ then ↓ returns to the tile you started on.
+  function nearestTile(from, [dx, dy]) {
+    const a = cellXY(from);
+    let best = null;
+    let bestDist = Infinity;
+    let bestAlign = -Infinity;
+    let bestCross = -Infinity;
+    for (const j of BOARD.tiles.keys()) {
+      if (j === from) continue;
+      const b = cellXY(j);
+      const vx = b.x - a.x;
+      const vy = b.y - a.y;
+      const dist = Math.hypot(vx, vy);
+      const align = (vx * dx + vy * dy) / dist; // cosine to the pressed direction
+      if (align < 0.5) continue; // behind, or outside the ~60° cone
+      const cross = vx * dy - vy * dx; // signed offset perpendicular to the arrow
+
+      let better;
+      if (Math.abs(dist - bestDist) > 0.5) {
+        better = dist < bestDist; // different lattice ring: pure distance
+      } else if (Math.abs(align - bestAlign) > 1e-6) {
+        better = align > bestAlign; // same ring: prefer the better-aligned tile
+      } else {
+        better = cross > bestCross; // genuine tie: pick a consistent side
+      }
+      if (better) {
+        best = j;
+        bestDist = dist;
+        bestAlign = align;
+        bestCross = cross;
+      }
+    }
+    return best;
+  }
+
+  // Move keyboard focus to tile `i`, keeping the roving tabindex in sync so Tab
+  // still enters and leaves the grid at a single stop.
+  function focusTile(i) {
+    const g = document.querySelector(`.bl-hex[data-i="${i}"]`);
+    if (!g) return;
+    document
+      .querySelectorAll(".bl-hex")
+      .forEach((el) => el.setAttribute("tabindex", "-1"));
+    g.setAttribute("tabindex", "0");
+    g.focus();
+  }
+
+  // Describe a tile for assistive tech: its role in the current word, or its
+  // bloom state. Mirrors the visual cues render() sets below.
+  function tileStatus(i, selSet, usedSet, anchor, lastSel) {
+    if (i === anchor) return "start of current word";
+    if (selSet.has(i))
+      return i === lastSel ? "current letter" : "in current word";
+    if (usedSet.has(i)) return "bloomed";
+    return "unbloomed";
   }
 
   // ─── Rendering ─────────────────────────────────────────────────────────────
@@ -425,9 +522,22 @@
 
       // Mark every tile adjacent to the last selected — including ones already
       // in selection — so the player can see what's reachable for re-use.
-      if (!state.done && isAdjacent(lastSel, i)) {
+      const reachable = !state.done && isAdjacent(lastSel, i);
+      if (reachable) {
         el.classList.add("bl-adj");
       }
+
+      // Keep the accessible name + roving tabindex in step with the visuals:
+      // the tile announces its letter and state, advertises an Enter action when
+      // it's a legal move, and only the current entry tile (the word's last
+      // letter) stays in the Tab order — arrows move focus within the grid.
+      const hint = reachable && !selSet.has(i) ? ", press Enter to add" : "";
+      el.setAttribute(
+        "aria-label",
+        `${letterAt(i).toUpperCase()}, ${tileStatus(i, selSet, usedSet, anchor, lastSel)}${hint}`,
+      );
+      el.setAttribute("aria-pressed", selSet.has(i) ? "true" : "false");
+      el.setAttribute("tabindex", i === lastSel ? "0" : "-1");
     });
 
     // Current word display
