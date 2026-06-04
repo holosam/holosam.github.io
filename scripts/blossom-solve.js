@@ -10,9 +10,9 @@ const path = require('path');
 
 // The words file uses `window.X = ...` in the browser; stub it for Node.
 global.window = {};
-eval(fs.readFileSync(path.join(__dirname, '../static/js/blossom-words.js'), 'utf8'));
+eval(fs.readFileSync(path.join(__dirname, '../assets/js/blossom-words.js'), 'utf8'));
 
-const Gen = require('../static/js/blossom-gen.js');
+const Gen = require('../assets/js/blossom-gen.js');
 
 const arg = process.argv[2];
 const date = arg

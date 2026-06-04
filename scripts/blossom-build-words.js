@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Regenerate static/js/blossom-words.js from the SCOWL ESDB common-words list
+// Regenerate assets/js/blossom-words.js from the SCOWL ESDB common-words list
 // and assets/blossom/word_bank.txt. Run with:
 //   node scripts/blossom-build-words.js
 // First-time setup (fetching the SCOWL input) is documented below.
@@ -51,7 +51,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const SCOWL_PATH = path.join(ROOT, 'assets/blossom/scowl-60.txt');
 const WORD_BANK_PATH = path.join(ROOT, 'assets/blossom/word_bank.txt');
-const OUT_PATH = path.join(ROOT, 'static/js/blossom-words.js');
+const OUT_PATH = path.join(ROOT, 'assets/js/blossom-words.js');
 
 const MIN_LEN = 3;
 const MAX_LEN = 12;

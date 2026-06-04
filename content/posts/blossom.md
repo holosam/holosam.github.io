@@ -71,6 +71,7 @@ May 22nd - added win streak, tuned game generation for more variety, removed unl
 May 24th - state validation for new day, tweak restart and delete button behavior
 May 30th - tuned game generation for more overlap, more compact scoring elements
 May 31st - prune dictionary, minor accessibility improvements
+Jun  3rd - refresh on stale state, improved accessibility via keyboard
 ```
 
 Thanks to everyone who's been giving me feedback! Espcially my family for helping me make it playable, and my friends for the encouragement.
