@@ -237,7 +237,7 @@
           <ol>
             <li>Start at the highlighted tile. Tap adjacent tiles to spell a word, then hit Enter. Each new word begins where the last one ended.</li>
             <li>Previously used tiles can be reused both within a word and across words.</li>
-            <li>Keep linking words until every tile is used. Try to use as few words as possible for bragging rights.</li>
+            <li>Keep linking words until every tile is used. Try to use as few words as possible.</li>
             <li>The Delete button undoes one letter. If you're stuck, tap 💡 for a hint.</li>
           </ol>
           <p class="bl-modal-foot">The board resets at midnight, so come back tomorrow to play a new one!</p>
@@ -552,7 +552,10 @@
     // persistent status line is just redundant noise. It reappears on restart,
     // when the word count drops back to zero.
     const wordCount = state.words.length;
-    const statusTxt = wordCount === 0 ? "Use every tile to win" : "";
+    const statusTxt =
+      wordCount === 0
+        ? `Use every tile to win. Aim for ${BOARD.targetWords} words if you can.`
+        : "";
 
     wl.innerHTML = `
       <div class="bl-par">${statusTxt}</div>
@@ -578,7 +581,7 @@
         records.streak > 0 ? `🔥 ${records.streak} day streak` : "";
       const meta = [
         streak,
-        `<button type="button" class="bl-banner-share" id="bl-banner-share">Share</button>`,
+        `<button type="button" class="bl-banner-share" id="bl-banner-share">Share your high score</button>`,
       ]
         .filter(Boolean)
         .join(" · ");
@@ -644,20 +647,22 @@
     }
   }
 
-  // Flash a bloom animation across each cell of a just-entered word.
+  // Pop a single tile after `delay`ms. The pop is a CSS transition (see
+  // games.css for why a @keyframes animation can't be used on SVG here): add
+  // the class to scale up, remove it a beat later to settle back.
+  const BLOOM_MS = 300;
+  function popTile(cell, className, delay) {
+    const el = document.querySelector(`.bl-hex[data-i="${cell}"]`);
+    if (!el) return;
+    setTimeout(() => {
+      el.classList.add(className);
+      setTimeout(() => el.classList.remove(className), BLOOM_MS);
+    }, delay);
+  }
+
+  // Flash a bloom across each cell of a just-entered word.
   function bloomCells(cells) {
-    cells.forEach((c, i) => {
-      const el = document.querySelector(`.bl-hex[data-i="${c}"]`);
-      if (!el) return;
-      setTimeout(() => {
-        el.classList.add("bl-bloom");
-        el.addEventListener(
-          "animationend",
-          () => el.classList.remove("bl-bloom"),
-          { once: true },
-        );
-      }, i * 55);
-    });
+    cells.forEach((c, i) => popTile(c, "bl-bloom", i * 55));
   }
 
   // Concentric ring bloom from the start tile — never traces a path, so it
@@ -675,18 +680,7 @@
     const dists = [...rings.keys()].sort((a, b) => a - b);
     dists.forEach((d, ringIdx) => {
       const delay = ringIdx * 130;
-      for (const c of rings.get(d)) {
-        const el = document.querySelector(`.bl-hex[data-i="${c}"]`);
-        if (!el) continue;
-        setTimeout(() => {
-          el.classList.add("bl-victory");
-          el.addEventListener(
-            "animationend",
-            () => el.classList.remove("bl-victory"),
-            { once: true },
-          );
-        }, delay);
-      }
+      for (const c of rings.get(d)) popTile(c, "bl-victory", delay);
     });
   }
 
@@ -721,7 +715,7 @@
   }
 
   function showHint() {
-    if (state.done) return;
+    // Available even after a win — a replay for a lower word count can still use it.
     toast(`The word ${LONGEST_WORD.toUpperCase()} is possible today`, {
       tone: "info",
       ms: 3500,

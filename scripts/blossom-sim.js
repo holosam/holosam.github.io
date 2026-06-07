@@ -13,8 +13,8 @@ const fs = require('fs');
 const path = require('path');
 
 global.window = {};
-eval(fs.readFileSync(path.join(__dirname, '../assets/js/blossom-words.js'), 'utf8'));
-const Gen = require('../assets/js/blossom-gen.js');
+eval(fs.readFileSync(path.join(__dirname, '../assets/blossom/words.js'), 'utf8'));
+const Gen = require('../assets/blossom/gen.js');
 const WORDS = window.BLOSSOM_GEN_WORDS;
 
 const args = process.argv.slice(2);

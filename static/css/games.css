@@ -332,28 +332,23 @@ body.game-body {
     paint-order: stroke;
 }
 
-/* Bloom animation — fires on the cells of a just-entered word.
-   Both polygon and text scale together so the letter blooms with the tile. */
-.bl-hex.bl-bloom polygon,
-.bl-hex.bl-bloom text {
-    animation: bl-bloom 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-@keyframes bl-bloom {
-    0% {
-        transform: scale(1);
-    }
-    45% {
-        transform: scale(1.22);
-    }
-    100% {
-        transform: scale(1);
-    }
-}
+/* Bloom — fires on the cells of a just-entered word, and again in the victory
+   cascade when the board is complete. Both polygon and text scale together so
+   the letter blooms with the tile.
 
-/* Final celebration — cascades across all tiles when the puzzle is complete */
+   This is a CSS *transition*, not a @keyframes animation, on purpose: iOS Safari
+   ignores the fill-box transform-origin for keyframe transforms on SVG child
+   nodes — the tile scales from the SVG's (0,0) origin and flies off-screen, so
+   the bloom never appears on mobile. Transitions honour fill-box (which is also
+   why the adjacency lift above works on mobile). JS adds the class to pop the
+   tile, then removes it a beat later; the base transition settles it back. The
+   spring curve overshoots past 1.18 and eases in. */
+.bl-hex.bl-bloom polygon,
+.bl-hex.bl-bloom text,
 .bl-hex.bl-victory polygon,
 .bl-hex.bl-victory text {
-    animation: bl-bloom 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform: scale(1.18);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* Respect reduced-motion: the bloom-on-entry and victory cascade are purely
@@ -364,7 +359,8 @@ body.game-body {
     .bl-hex.bl-bloom text,
     .bl-hex.bl-victory polygon,
     .bl-hex.bl-victory text {
-        animation: none;
+        transform: none;
+        transition: none;
     }
 }
 
