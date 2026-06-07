@@ -8,17 +8,17 @@
   copy can keep serving old code after a deploy.
 
   fingerprint hashes each file's contents into its filename
-  (e.g. blossom-gen.<hash>.js). Change one byte -> new hash -> new URL ->
+  (e.g. gen.<hash>.js). Change one byte -> new hash -> new URL ->
   every cache is bypassed automatically. No manual cache-busting to remember.
   integrity adds Subresource Integrity so a tampered file is rejected.
 
-  Source of truth lives in assets/js/ (resources.Get reads from assets/, not
-  static/). Load order matters: words and gen must define their globals before
-  blossom.js consumes them.
+  Source of truth lives in assets/blossom/ (resources.Get reads from assets/,
+  not static/). Load order matters: words and gen must define their globals
+  before game.js consumes them.
 */ -}}
-{{- $words := resources.Get "js/blossom-words.js" | minify | fingerprint -}}
-{{- $gen := resources.Get "js/blossom-gen.js" | minify | fingerprint -}}
-{{- $game := resources.Get "js/blossom.js" | minify | fingerprint -}}
+{{- $words := resources.Get "blossom/words.js" | minify | fingerprint -}}
+{{- $gen := resources.Get "blossom/gen.js" | minify | fingerprint -}}
+{{- $game := resources.Get "blossom/game.js" | minify | fingerprint -}}
 <script src="{{ $words.RelPermalink }}" integrity="{{ $words.Data.Integrity }}"></script>
 <script src="{{ $gen.RelPermalink }}" integrity="{{ $gen.Data.Integrity }}"></script>
 <script src="{{ $game.RelPermalink }}" integrity="{{ $game.Data.Integrity }}"></script>
