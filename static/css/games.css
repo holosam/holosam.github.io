@@ -1,9 +1,6 @@
 /* ─── Page shell ─────────────────────────────────────────────────────────── */
 body.game-body {
     margin: 0;
-    /* dvh (not vh): on iOS Safari 100vh is the toolbars-hidden height, which is
-       taller than the visible area while the toolbars show — that gap becomes
-       dead scrollable space below the buttons. dvh tracks the real viewport. */
     min-height: 100dvh;
     display: flex;
     flex-direction: column;
