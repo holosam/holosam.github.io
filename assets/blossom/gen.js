@@ -119,6 +119,23 @@
     const genByFirst = {};
     for (const w of genPool) (genByFirst[w[0]] ||= []).push(w);
 
+    // Per-letter correction factors: up-weight candidates ending on letters
+    // that are common chain-starters in the pool, down-weight those ending on
+    // letters that are rare starters. Applied to the next-word weight so the
+    // Markov chain's stationary distribution tracks the pool's first-letter
+    // distribution instead of its last-letter distribution.
+    const poolFirstCount = {};
+    const poolLastCount = {};
+    for (const w of genPool) {
+      poolFirstCount[w[0]] = (poolFirstCount[w[0]] || 0) + 1;
+      poolLastCount[w[w.length - 1]] = (poolLastCount[w[w.length - 1]] || 0) + 1;
+    }
+    const corrFactor = {};
+    for (const l in poolLastCount) {
+      corrFactor[l] =
+        ((poolFirstCount[l] || 0) + 1e-9) / (poolLastCount[l] + 1e-9);
+    }
+
     // The rng is threaded continuously through every decision below — seed
     // word, each subsequent word, and every tile placement all draw from this
     // one stream. That's why two different dates never produce the same board
@@ -235,7 +252,7 @@
           -(lengthCounts[w.length] || 0),
         );
         const lw = lengthWeight[w.length] != null ? lengthWeight[w.length] : 1;
-        return (local * local + 0.5) * lengthBonus * lw;
+        return (local * local + 0.5) * lengthBonus * lw * (corrFactor[w[w.length - 1]] || 1);
       });
       const ordered = weightedShuffle(candidates, weights, rng);
 
