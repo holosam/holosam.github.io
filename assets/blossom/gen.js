@@ -102,7 +102,7 @@
     // Intrinsic per-length preference, applied on top of lengthAlpha. Lengths
     // absent from the map default to 1. The short (3) and long (8) extremes are
     // damped so they sprinkle in for variety without dominating the mix.
-    const lengthWeight = opts.lengthWeight || { 3: 0.4, 8: 0.4 };
+    const lengthWeight = opts.lengthWeight || { 4: 0.75, 5: 0.9, 7: 1.15, 8: 0.5 };
     // Localized-overlap weighting. When picking the next word, we reward letters
     // that can reuse a tile already sitting near the junction (the last placed
     // cell) — and reward the word's *earliest* letters most, since those are the
@@ -111,6 +111,9 @@
     // generation and let the final words wrap the rim on fresh tiles.
     const localRadius = opts.localRadius != null ? opts.localRadius : 2;
     const overlapDecay = opts.overlapDecay != null ? opts.overlapDecay : 0.8;
+    // Floor weight for words with no local overlap. Controls how aggressively
+    // the overlap signal crowds out non-overlapping candidates.
+    const overlapFloor = opts.overlapFloor != null ? opts.overlapFloor : 0.3;
     const targetLetters = targetTiles * 1.5;
     // Runaway guard: cap total word-placement attempts across all backtracking
     // before giving up and reseeding. Normal generation never approaches this.
@@ -229,30 +232,57 @@
       const candidates = (genByFirst[last] || []).filter((w) => !used.has(w));
       if (!candidates.length) return tiles.size >= minTiles;
 
-      // Letters sitting on tiles within localRadius of the junction (the last
-      // placed cell). A candidate whose early letters land in this set can fold
-      // back onto an existing tile instead of extending the rim. Unlike the old
-      // whole-board letter set this stays selective late in generation, when the
-      // board already contains most of the alphabet.
+      // Simulate the greedy placer's path from the junction, assuming no tile
+      // reuse occurs (i.e. each step lands on a fresh empty cell). placeLetter
+      // always picks the empty neighbour with the most filled neighbours, ties
+      // broken by proximity to center — we run that same deterministic rule to
+      // predict where the placer would be at each word position li. The letters
+      // on actual board tiles adjacent to predictedPath[li-1] are then exactly
+      // the set the placer CAN reuse at step li.
+      //
+      // This replaces the old hex-distance localSet approach, which credited
+      // letters on tiles the placer couldn't actually reach at that position,
+      // causing larger localRadius values to counterintuitively reduce overlap.
       const junction = seq[seq.length - 1].cellIdx;
-      const localSet = new Set();
-      for (const [cell, letter] of tiles) {
-        if (hexDistance(cell, junction) <= localRadius) localSet.add(letter);
+      const predictedPath = [junction];
+      const predOccupied = new Set(tiles.keys());
+      for (let li = 1; li <= localRadius; li++) {
+        const prev = predictedPath[li - 1];
+        let best = -1, bestFilled = -1, bestDist = Infinity;
+        for (const n of neighbors(prev)) {
+          if (predOccupied.has(n)) continue;
+          const filled = neighbors(n).filter(x => predOccupied.has(x)).length;
+          const dist = hexDistance(n, start);
+          if (filled > bestFilled || (filled === bestFilled && dist < bestDist)) {
+            bestFilled = filled; bestDist = dist; best = n;
+          }
+        }
+        if (best < 0) break;
+        predictedPath.push(best);
+        predOccupied.add(best);
+      }
+      // localReachable[li-1] = letters on board tiles adjacent to the predicted
+      // cell at step li-1, i.e. the letters reusable by the placer at position li.
+      const localReachable = [];
+      for (let li = 1; li < predictedPath.length; li++) {
+        const reachable = new Set();
+        for (const n of neighbors(predictedPath[li - 1])) {
+          if (tiles.has(n)) reachable.add(tiles.get(n));
+        }
+        localReachable.push(reachable);
       }
       const weights = candidates.map((w) => {
-        // Credit each reusable letter, decaying by position so a match on the
-        // word's 2nd letter (first one placed after the shared joint) counts
-        // most. w[0] is the shared joint, so start at index 1.
         let local = 0;
         for (let li = 1; li < w.length; li++) {
-          if (localSet.has(w[li])) local += Math.pow(overlapDecay, li - 1);
+          const reachable = localReachable[li - 1];
+          if (reachable && reachable.has(w[li])) local += Math.pow(overlapDecay, li - 1);
         }
         const lengthBonus = Math.pow(
           1 + lengthAlpha,
           -(lengthCounts[w.length] || 0),
         );
         const lw = lengthWeight[w.length] != null ? lengthWeight[w.length] : 1;
-        return (local * local + 0.5) * lengthBonus * lw * (corrFactor[w[w.length - 1]] || 1);
+        return (local * local + overlapFloor) * lengthBonus * lw * (corrFactor[w[w.length - 1]] || 1);
       });
       const ordered = weightedShuffle(candidates, weights, rng);
 
