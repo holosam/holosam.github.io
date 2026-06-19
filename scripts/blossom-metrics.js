@@ -135,7 +135,7 @@ console.log(`overlap rate:  ${fmt(rate, 1)}%`);
 
 const allLens = Object.keys(lengthCounts).map(Number).sort((a, b) => a - b);
 const padLen  = Math.max(...allLens.map(l => `${l}-letter`.length));
-console.log(`\nwords by length:`);
+console.log(`\nwords per board by length:`);
 for (const len of allLens)
   console.log(`  ${`${len}-letter`.padEnd(padLen)}  ${fmt(lengthCounts[len])}`);
 
