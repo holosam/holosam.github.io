@@ -102,7 +102,7 @@
     // Intrinsic per-length preference, applied on top of lengthAlpha. Lengths
     // absent from the map default to 1. The short (3) and long (8) extremes are
     // damped so they sprinkle in for variety without dominating the mix.
-    const lengthWeight = opts.lengthWeight || { 3: 0.4, 8: 0.4 };
+    const lengthWeight = opts.lengthWeight || { 4: 0.75, 5: 0.9, 7: 1.15, 8: 0.5 };
     // Localized-overlap weighting. When picking the next word, we reward letters
     // that can reuse a tile already sitting near the junction (the last placed
     // cell) — and reward the word's *earliest* letters most, since those are the
@@ -111,6 +111,9 @@
     // generation and let the final words wrap the rim on fresh tiles.
     const localRadius = opts.localRadius != null ? opts.localRadius : 2;
     const overlapDecay = opts.overlapDecay != null ? opts.overlapDecay : 0.8;
+    // Floor weight for words with no local overlap. Controls how aggressively
+    // the overlap signal crowds out non-overlapping candidates.
+    const overlapFloor = opts.overlapFloor != null ? opts.overlapFloor : 0.5;
     const targetLetters = targetTiles * 1.5;
     // Runaway guard: cap total word-placement attempts across all backtracking
     // before giving up and reseeding. Normal generation never approaches this.
@@ -279,7 +282,7 @@
           -(lengthCounts[w.length] || 0),
         );
         const lw = lengthWeight[w.length] != null ? lengthWeight[w.length] : 1;
-        return (local * local + 0.5) * lengthBonus * lw * (corrFactor[w[w.length - 1]] || 1);
+        return (local * local + overlapFloor) * lengthBonus * lw * (corrFactor[w[w.length - 1]] || 1);
       });
       const ordered = weightedShuffle(candidates, weights, rng);
 
