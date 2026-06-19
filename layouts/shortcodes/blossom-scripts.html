@@ -19,6 +19,15 @@
 {{- $words := resources.Get "blossom/words.js" | minify | fingerprint -}}
 {{- $gen := resources.Get "blossom/gen.js" | minify | fingerprint -}}
 {{- $game := resources.Get "blossom/game.js" | minify | fingerprint -}}
+{{- /*
+  Fingerprinting busts caches for the scripts but not the HTML that references
+  them, so stale clients keep running old code. The build id is both inlined
+  (what the client is running) and published at a stable URL (what's current);
+  game.js compares the two and reloads on a mismatch. Both copies are required.
+*/ -}}
+{{- $build := printf "%s %s %s" $words.Data.Integrity $gen.Data.Integrity $game.Data.Integrity | sha256 -}}
+{{- (resources.FromString "blossom-version.txt" $build).Publish -}}
+<script>window.BLOSSOM_BUILD = {{ $build }};</script>
 <script src="{{ $words.RelPermalink }}" integrity="{{ $words.Data.Integrity }}"></script>
 <script src="{{ $gen.RelPermalink }}" integrity="{{ $gen.Data.Integrity }}"></script>
 <script src="{{ $game.RelPermalink }}" integrity="{{ $game.Data.Integrity }}"></script>
