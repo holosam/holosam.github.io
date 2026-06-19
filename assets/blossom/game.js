@@ -908,13 +908,11 @@
     if (dateKey(new Date()) !== TODAY_KEY) location.reload();
   }
 
-  // Fingerprinting busts caches for the JS, but the HTML carrying those URLs is
-  // itself cacheable, so a returning visitor can boot old code. BLOSSOM_BUILD is
-  // baked into the (possibly stale) HTML; blossom-version.txt is fetched fresh.
-  // A mismatch means a newer deploy exists — reload to pull the new HTML. Tied to
-  // pageshow/refocus rather than a poll: those cover returning/backgrounded tabs,
-  // which is where stale code actually surfaces. (If the script 404s outright,
-  // this can't run, but GitHub Pages' HTML revalidation self-heals that.)
+  // Fingerprinting can't bust the HTML that carries the script URLs, so a
+  // returning visitor can boot old code. BLOSSOM_BUILD is baked into that
+  // (possibly stale) HTML; a mismatch with the fresh file means a newer deploy
+  // exists. Driven by the events below rather than the poll, since stale code
+  // only surfaces when a tab is reopened or refocused.
   async function reloadIfCodeStale() {
     try {
       const res = await fetch("/blossom-version.txt", { cache: "no-store" });
