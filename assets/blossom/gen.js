@@ -113,7 +113,7 @@
     const overlapDecay = opts.overlapDecay != null ? opts.overlapDecay : 0.8;
     // Floor weight for words with no local overlap. Controls how aggressively
     // the overlap signal crowds out non-overlapping candidates.
-    const overlapFloor = opts.overlapFloor != null ? opts.overlapFloor : 0.5;
+    const overlapFloor = opts.overlapFloor != null ? opts.overlapFloor : 0.3;
     const targetLetters = targetTiles * 1.5;
     // Runaway guard: cap total word-placement attempts across all backtracking
     // before giving up and reseeding. Normal generation never approaches this.
