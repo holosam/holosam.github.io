@@ -19,6 +19,17 @@
 {{- $words := resources.Get "blossom/words.js" | minify | fingerprint -}}
 {{- $gen := resources.Get "blossom/gen.js" | minify | fingerprint -}}
 {{- $game := resources.Get "blossom/game.js" | minify | fingerprint -}}
+{{- /*
+  Fingerprinting only busts caches for these scripts; the HTML that carries
+  their URLs is itself cacheable, and GitHub Pages won't let us set no-cache on
+  it. So a returning visitor can run old code from stale HTML. The fix: derive a
+  build id from the three fingerprints, inline it as what's-running, and publish
+  it at a stable (non-fingerprinted) URL as what's-current. game.js fetches the
+  latter on pageshow/refocus and reloads on a mismatch.
+*/ -}}
+{{- $build := printf "%s %s %s" $words.Data.Integrity $gen.Data.Integrity $game.Data.Integrity | sha256 -}}
+{{- (resources.FromString "blossom-version.txt" $build).Publish -}}
+<script>window.BLOSSOM_BUILD = {{ $build }};</script>
 <script src="{{ $words.RelPermalink }}" integrity="{{ $words.Data.Integrity }}"></script>
 <script src="{{ $gen.RelPermalink }}" integrity="{{ $gen.Data.Integrity }}"></script>
 <script src="{{ $game.RelPermalink }}" integrity="{{ $game.Data.Integrity }}"></script>

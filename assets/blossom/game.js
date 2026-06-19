@@ -13,25 +13,22 @@
   // cells that no longer exist on the new board) is automatically discarded.
   const STORAGE_KEY = "blossom-v2-" + TODAY_KEY;
   const BOARD = generateBoard(seedForDate(TODAY), window.BLOSSOM_GEN_WORDS);
-  // The single daily hint: a longest word in the solution chain. Revealing it
-  // again tells the player nothing new, so it's naturally one hint per day.
+  // The daily hint: a longest word in the chain. It never changes, so it's
+  // effectively one hint per day.
   const LONGEST_WORD = BOARD.chain.reduce(
     (a, b) => (b.length > a.length ? b : a),
     "",
   );
 
-  // The generator, dictionary, and today's board now live in this closure, so
-  // drop the window handles the loader left behind. It stops a casual
-  // `BlossomGen.generateBoard(...)` peek at today's solution from the console —
-  // a speed bump, not a lock: the source still ships and can be re-run.
+  // Hide today's solution from a casual console peek (not a real lock — the
+  // source still ships and can be re-run).
   try {
     delete window.BlossomGen;
     delete window.BLOSSOM_WORDS;
     delete window.BLOSSOM_GEN_WORDS;
   } catch {}
 
-  // Each day leaves behind its own state key; sweep stale ones so storage
-  // doesn't accumulate a key per day forever. (Sizes are tiny, but tidy.)
+  // Sweep stale per-day state keys so storage doesn't grow a key per day forever.
   function pruneOldDays() {
     try {
       // Iterate backwards — removeItem reindexes the remaining keys.
@@ -51,21 +48,16 @@
       used: [BOARD.start],
       active: BOARD.start,
       done: false,
-      // Today's bests, scoped to this board. bestWords is the lowest word count
-      // among today's completions; maxTiles is the most tiles covered today.
-      // They survive a Restart (so you can see if a redo beat your earlier run)
-      // but reset with each new daily board.
+      // Today's bests, scoped to this board: fewest words to a win, most tiles
+      // covered. Survive a Restart (to measure a redo) but reset each new board.
       bestWords: null,
       maxTiles: 0,
     };
   }
 
   // Rebuild and verify a saved state against TODAY's board. The word list is
-  // the source of truth; `used`/`active`/`done` are recomputed from it rather
-  // than trusted. Any inconsistency — a stale board left over from a generator
-  // change (same date key, different board), or hand-edited localStorage —
-  // fails validation and the day starts fresh. This is what stops a corrupt or
-  // spoofed save from surfacing words that can't be spelled on the real board.
+  // the source of truth; `used`/`active`/`done` are recomputed, not trusted.
+  // Any inconsistency (stale board, hand-edited or spoofed save) starts fresh.
   function validateState(s) {
     if (!s || !Array.isArray(s.words)) return null;
     const used = [BOARD.start];
@@ -75,14 +67,12 @@
         return null;
       const cells = w.cells;
       if (cells.length < 3 || cells.length > MAX_WORD_LEN) return null;
-      // Each word continues the chain from the previous word's last tile…
+      // Each word continues the chain from the previous word's last tile.
       if (cells[0] !== anchor) return null;
-      // …and every step is a real tile reached by a legal adjacency move.
       for (let k = 0; k < cells.length; k++) {
         if (!BOARD.tiles.has(cells[k])) return null;
         if (k > 0 && !isAdjacent(cells[k - 1], cells[k])) return null;
       }
-      // The cells must spell the stored word, and it must be a real word.
       if (cells.map(letterAt).join("") !== w.word) return null;
       if (!VALID.has(w.word)) return null;
       cells.forEach((c) => {
@@ -283,7 +273,6 @@
     const svg = document.getElementById("bl-grid");
     const SVG_NS = "http://www.w3.org/2000/svg";
 
-    // Compute bounding box of placed tiles
     let minX = Infinity,
       minY = Infinity,
       maxX = -Infinity,
@@ -302,11 +291,9 @@
     const vbH = maxY - minY + pad * 2;
     svg.setAttribute("viewBox", `${vbX} ${vbY} ${vbW} ${vbH}`);
     svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
-    // Hand the wrapper the aspect ratio so CSS can size the grid against
-    // both viewport width AND viewport height (see games.css). Animation
-    // transforms inside the SVG can overflow without changing the box,
-    // because aspect-ratio fixes the box dimensions independently of
-    // content.
+    // Give the wrapper the aspect ratio so CSS can size the grid against both
+    // viewport width and height; aspect-ratio fixes the box, so animation
+    // transforms can overflow without resizing it (see games.css).
     const aspect = document.getElementById("bl-grid-aspect");
     aspect.style.setProperty("--bl-aspect", `${vbW / vbH}`);
 
@@ -321,10 +308,9 @@
       const g = document.createElementNS(SVG_NS, "g");
       g.setAttribute("class", "bl-hex");
       g.setAttribute("data-i", i);
-      // Each tile is an operable button: role/aria-label make it announce as a
-      // button to assistive tech (and let a keyboard or screen-reader user
-      // play). tabindex starts at -1; render() promotes the current entry tile
-      // to 0 (roving tabindex) so Tab enters the grid at one stop, not 21.
+      // Each tile is an operable button for assistive tech. tabindex starts at
+      // -1; render() promotes the current entry tile to 0 (roving tabindex) so
+      // Tab enters the grid at one stop, not 21.
       g.setAttribute("role", "button");
       g.setAttribute("tabindex", "-1");
 
@@ -374,9 +360,9 @@
 
     if (selection.length >= MAX_WORD_LEN) return;
 
-    // Any tile adjacent to the last selected can be added — including a tile
-    // that's already in the current selection (letters can be reused within
-    // a word, e.g. spelling LEAVE by walking L→E→A→V→E back over the first E).
+    // Any tile adjacent to the last selected can be added — including one
+    // already in the selection, since letters can be reused within a word
+    // (e.g. LEAVE walks back over the first E).
     const last = selection[selection.length - 1];
     if (!isAdjacent(last, i)) return;
 
@@ -513,24 +499,19 @@
         el.classList.add("bl-unused");
       }
 
-      // The "filled" border tracks committed tiles regardless of the
-      // interaction state above, so a previously-used tile keeps the cue even
-      // while it's part of the current word or offered as an adjacency option.
-      // New tiles in the current word aren't in `used` yet, so they stay thin —
-      // which also distinguishes a fresh pick from a re-use.
+      // The "filled" border tracks committed (used) tiles regardless of the
+      // interaction state above, so a re-used tile keeps the cue while new tiles
+      // in the current word stay thin — distinguishing a fresh pick from re-use.
       if (usedSet.has(i)) el.classList.add("bl-filled");
 
-      // Mark every tile adjacent to the last selected — including ones already
-      // in selection — so the player can see what's reachable for re-use.
+      // Mark tiles adjacent to the last selected so the player sees what's reachable.
       const reachable = !state.done && isAdjacent(lastSel, i);
       if (reachable) {
         el.classList.add("bl-adj");
       }
 
       // Keep the accessible name + roving tabindex in step with the visuals:
-      // the tile announces its letter and state, advertises an Enter action when
-      // it's a legal move, and only the current entry tile (the word's last
-      // letter) stays in the Tab order — arrows move focus within the grid.
+      // only the current entry tile stays in the Tab order; arrows move within.
       const hint = reachable && !selSet.has(i) ? ", press Enter to add" : "";
       el.setAttribute(
         "aria-label",
@@ -540,17 +521,12 @@
       el.setAttribute("tabindex", i === lastSel ? "0" : "-1");
     });
 
-    // Current word display
     const cw = document.getElementById("bl-current");
     cw.textContent = currentWord() || " ";
 
-    // Words history
     const wl = document.getElementById("bl-words");
-    // The goal nudge leads only on a fresh (or restarted) board, then steps
-    // aside: once play starts the board's unbloomed tiles already show what's
-    // left and the gold word-chain below shows what's been played, so a
-    // persistent status line is just redundant noise. It reappears on restart,
-    // when the word count drops back to zero.
+    // The goal nudge shows only on a fresh/restarted board (wordCount 0); once
+    // play starts the tiles and word-chain convey progress, so it steps aside.
     const wordCount = state.words.length;
     const statusTxt =
       wordCount === 0
@@ -565,18 +541,15 @@
     `;
 
     if (state.done) {
-      // state.done is only ever set on a win (submit() has no fail state), so the
-      // board is full here. The target itself is never shown — the praise word is
-      // the only score signal, scaling with how few words it took. Beating the
-      // generator's own chain is rare and earns the loudest cheer.
+      // state.done is only set on a win, so the board is full here. The praise
+      // word is the only score signal, scaling with how few words it took.
       const text =
         wordCount < BOARD.targetWords
           ? `Incredible!`
           : wordCount === BOARD.targetWords
             ? `Amazing!`
             : `Nice!`;
-      // Streak + Share render as one quiet, muted, dot-separated row after the
-      // praise, so they read as a consistent pair instead of two competing styles.
+      // Streak + Share render as one muted, dot-separated row after the praise.
       const streak =
         records.streak > 0 ? `🔥 ${records.streak} day streak` : "";
       const meta = [
@@ -647,9 +620,8 @@
     }
   }
 
-  // Pop a single tile after `delay`ms. The pop is a CSS transition (see
-  // games.css for why a @keyframes animation can't be used on SVG here): add
-  // the class to scale up, remove it a beat later to settle back.
+  // Pop a single tile after `delay`ms: add the class to scale up, remove it a
+  // beat later to settle back (a CSS transition — see games.css for why).
   const BLOOM_MS = 300;
   function popTile(cell, className, delay) {
     const el = document.querySelector(`.bl-hex[data-i="${cell}"]`);
@@ -684,13 +656,10 @@
     });
   }
 
-  // Incremental delete:
-  //   • If letters have been added past the anchor, drop the most recent one.
-  //   • Otherwise, un-enter the most recently entered word and re-select
-  //     all but its last letter, so the player can swap that final letter.
-  // Delete stays live after a win, too: backing off a letter clears `done`
-  // (below) so the player can rework the tail of their chain and try for a
-  // lower word count.
+  // Incremental delete: drop the last selected letter, or if none past the
+  // anchor, un-enter the last word and re-select all but its final letter (to
+  // swap it). Stays live after a win — clearing `done` lets the player rework
+  // the tail for a lower word count.
   function deleteLast() {
     if (selection.length > 1) {
       selection.pop();
@@ -722,20 +691,12 @@
     });
   }
 
-  // Build the shareable score string. Once the board has been completed today,
-  // this shares the player's BEST result — the fewest-word win — not whatever
-  // redo happens to be on the board. With delete-after-win and restart keeping
-  // today's best, players replay to chase a lower count; a share shouldn't
-  // undersell the win they already earned. Before the first completion there's
-  // no "best" yet, so it falls back to the current attempt's progress.
-  // Always a target-slot bouquet:
-  //   🌸 = a word entered  (counts up to target)
-  //   ⚪ = a target slot still open  (mid-game or bust — replaced by 🏆 on a win)
-  //   🏆 = beat target by this many words  (under-target win — the rare brag)
-  //   🌿 = a word past target  (overshoot — greenery, not a wilt; the goal is to
-  //        fill the board, so going long is fine, just not a brag)
-  // Non-winning states append the tile fraction so the receiver can tell
-  // whether you actually finished the board.
+  // Build the shareable score string. After a completion it shares today's BEST
+  // (fewest-word) win, not whatever redo is on the board; before that, current
+  // progress. The bouquet:
+  //   🌸 word entered   ⚪ open target slot   🏆 words under target (the brag)
+  //   🌿 word past target (overshoot is fine — the goal is filling the board)
+  // Non-winning states append the tile fraction.
   function shareText() {
     const target = BOARD.targetWords;
     // bestWords is only ever set on a full-board win, so a non-null value means
@@ -752,8 +713,7 @@
     const fillerChar = won ? "🏆" : "⚪";
     const bouquet =
       "🌸".repeat(blooms) + fillerChar.repeat(filler) + "🌿".repeat(extras);
-    // The bouquet already encodes the score; a win is just the flowers, while
-    // unfinished games still need the tile fraction to show progress.
+    // A win is just the flowers; unfinished games append the tile fraction.
     const line = won
       ? bouquet
       : `${bouquet} ${tilesUsed}/${BOARD.totalTiles} tiles`;
@@ -811,8 +771,7 @@
   function restart() {
     const { bestWords, maxTiles } = state;
     state = freshState();
-    // Today's bests persist across a Restart so a redo can be measured
-    // against your earlier run on the same board.
+    // Bests persist across Restart so a redo can be measured against earlier.
     state.bestWords = bestWords;
     state.maxTiles = maxTiles;
     selection = [state.active];
@@ -920,8 +879,7 @@
   // First-time players land on a bare grid with no rules — open the how-to
   // once so the chain mechanic (and the header buttons) are discoverable.
   const HELP_SEEN_KEY = "blossom-help-seen";
-  // Guard the read too: an unguarded localStorage access throws in
-  // storage-blocked browsers, which here would break the whole game at init.
+  // Guard the read: localStorage access throws in storage-blocked browsers.
   let helpSeen = false;
   try {
     helpSeen = !!localStorage.getItem(HELP_SEEN_KEY);
@@ -949,11 +907,33 @@
   function refreshIfStale() {
     if (dateKey(new Date()) !== TODAY_KEY) location.reload();
   }
+
+  // Fingerprinting busts caches for the JS, but the HTML carrying those URLs is
+  // itself cacheable, so a returning visitor can boot old code. BLOSSOM_BUILD is
+  // baked into the (possibly stale) HTML; blossom-version.txt is fetched fresh.
+  // A mismatch means a newer deploy exists — reload to pull the new HTML. Tied to
+  // pageshow/refocus rather than a poll: those cover returning/backgrounded tabs,
+  // which is where stale code actually surfaces. (If the script 404s outright,
+  // this can't run, but GitHub Pages' HTML revalidation self-heals that.)
+  async function reloadIfCodeStale() {
+    try {
+      const res = await fetch("/blossom-version.txt", { cache: "no-store" });
+      if (res.ok && (await res.text()).trim() !== window.BLOSSOM_BUILD)
+        location.reload();
+    } catch {}
+  }
+
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) refreshIfStale();
+    if (!document.hidden) {
+      refreshIfStale();
+      reloadIfCodeStale();
+    }
   });
-  window.addEventListener("pageshow", refreshIfStale);
+  window.addEventListener("pageshow", () => {
+    refreshIfStale();
+    reloadIfCodeStale();
+  });
   // visibilitychange/pageshow miss the case of a tab left focused across
-  // midnight, so also poll once a minute.
+  // midnight, so also poll the date once a minute.
   setInterval(refreshIfStale, 60000);
 })();
