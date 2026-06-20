@@ -34,7 +34,7 @@ Audience is technical. Use existing posts as canonical reference for voice.
 
 - Just because something is there already it doesn't mean it was extremely well thought-out. Think critically and question assumptions
 - Start with proposing the simplest option (low effort, high impact) and we can discuss adding complexity incrementally from there
-- Do not use comments when code is self-explanatory. Comments should generally only be used to remember counter-intuitive decisions
+- Default to not using comments, and only use comments when code is not self-explanatory or it's important to remember a counter-intuitive decision. If a comment is necessary, it should be as concise as possible.
 
 ## Getting a branch ready for PR
 

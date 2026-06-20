@@ -3,32 +3,28 @@
   const { toRC, isAdjacent, generateBoard, seedForDate, dateKey } =
     window.BlossomGen;
 
-  // Defensive caps — keep the game from getting into absurd states.
   const MAX_WORD_LEN = 12; // longest word in the dictionary
   const WORD_CAP_OVER_TARGET = 25;
 
   const TODAY = new Date();
   const TODAY_KEY = dateKey(TODAY);
-  // Bump the version when the generator changes so stale state (referencing
-  // cells that no longer exist on the new board) is automatically discarded.
+  // Bump the version when the generator changes so state referencing cells that
+  // no longer exist on the new board is discarded.
   const STORAGE_KEY = "blossom-v2-" + TODAY_KEY;
   const BOARD = generateBoard(seedForDate(TODAY), window.BLOSSOM_GEN_WORDS);
-  // The daily hint: a longest word in the chain. It never changes, so it's
-  // effectively one hint per day.
   const LONGEST_WORD = BOARD.chain.reduce(
     (a, b) => (b.length > a.length ? b : a),
     "",
   );
 
-  // Hide today's solution from a casual console peek (not a real lock — the
-  // source still ships and can be re-run).
+  // Hide today's solution from a casual console peek — not a real lock, the
+  // source still ships.
   try {
     delete window.BlossomGen;
     delete window.BLOSSOM_WORDS;
     delete window.BLOSSOM_GEN_WORDS;
   } catch {}
 
-  // Sweep stale per-day state keys so storage doesn't grow a key per day forever.
   function pruneOldDays() {
     try {
       // Iterate backwards — removeItem reindexes the remaining keys.
@@ -48,16 +44,16 @@
       used: [BOARD.start],
       active: BOARD.start,
       done: false,
-      // Today's bests, scoped to this board: fewest words to a win, most tiles
-      // covered. Survive a Restart (to measure a redo) but reset each new board.
+      // Today's bests, scoped to this board. Survive a Restart but reset each
+      // new board.
       bestWords: null,
       maxTiles: 0,
     };
   }
 
-  // Rebuild and verify a saved state against TODAY's board. The word list is
-  // the source of truth; `used`/`active`/`done` are recomputed, not trusted.
-  // Any inconsistency (stale board, hand-edited or spoofed save) starts fresh.
+  // Rebuild and verify a saved state against TODAY's board. The word list is the
+  // source of truth; `used`/`active`/`done` are recomputed. Any inconsistency
+  // (stale board, hand-edited or spoofed save) starts fresh.
   function validateState(s) {
     if (!s || !Array.isArray(s.words)) return null;
     const used = [BOARD.start];
@@ -67,7 +63,6 @@
         return null;
       const cells = w.cells;
       if (cells.length < 3 || cells.length > MAX_WORD_LEN) return null;
-      // Each word continues the chain from the previous word's last tile.
       if (cells[0] !== anchor) return null;
       for (let k = 0; k < cells.length; k++) {
         if (!BOARD.tiles.has(cells[k])) return null;
@@ -80,7 +75,6 @@
       });
       anchor = cells[cells.length - 1];
     }
-    // Carry today's bests through the reload, lightly sanity-checked.
     const bestWords =
       typeof s.bestWords === "number" && s.bestWords > 0 ? s.bestWords : null;
     const maxTiles =
@@ -113,8 +107,8 @@
     } catch {}
   }
 
-  // Cross-day records, not date-scoped. Only the win streak lives here now —
-  // the word/tile bests are per-board and live in the daily `state`.
+  // Cross-day records, not date-scoped: just the win streak (word/tile bests are
+  // per-board, in the daily `state`).
   const RECORDS_KEY = "blossom-records-v2";
   function loadRecords() {
     const defaults = {
@@ -139,14 +133,13 @@
     } catch {}
   }
   function updateRecords(tilesUsed) {
-    // Today's bests live in `state`; the caller's save() persists them.
     if (tilesUsed > state.maxTiles) state.maxTiles = tilesUsed;
     if (state.done && tilesUsed >= BOARD.totalTiles) {
       if (state.bestWords === null || state.words.length < state.bestWords) {
         state.bestWords = state.words.length;
       }
-      // Win streak: extend if yesterday was also a win, else start fresh.
-      // Guard on lastWinKey so re-winning the same day can't double-count.
+      // Guard on lastWinKey so re-winning the same day can't double-count the
+      // streak.
       if (records.lastWinKey !== TODAY_KEY) {
         records.streak =
           records.lastWinKey === prevDateKey(TODAY_KEY)
@@ -308,9 +301,8 @@
       const g = document.createElementNS(SVG_NS, "g");
       g.setAttribute("class", "bl-hex");
       g.setAttribute("data-i", i);
-      // Each tile is an operable button for assistive tech. tabindex starts at
-      // -1; render() promotes the current entry tile to 0 (roving tabindex) so
-      // Tab enters the grid at one stop, not 21.
+      // Roving tabindex: render() promotes the current entry tile to 0 so Tab
+      // enters the grid at one stop, not 21.
       g.setAttribute("role", "button");
       g.setAttribute("tabindex", "-1");
 
@@ -351,7 +343,7 @@
     if (state.done) return;
     if (!BOARD.tiles.has(i)) return;
 
-    // Tapping the most-recently-selected tile = undo it (anchor stays put).
+    // Tapping the most-recently-selected tile undoes it.
     if (i === selection[selection.length - 1] && selection.length > 1) {
       selection.pop();
       render();
@@ -371,11 +363,9 @@
   }
 
   // ─── Keyboard navigation ─────────────────────────────────────────────────
-  // Arrow keys move focus to the nearest tile in that direction; Enter/Space
-  // activate the focused tile. (SVG groups, unlike real <button>s, don't fire a
-  // click on Enter/Space, so it's wired explicitly.) Focus only follows a
-  // change, so a rejected (non-adjacent) Enter leaves the cursor put instead of
-  // yanking it to the active tile.
+  // SVG groups, unlike real <button>s, don't fire a click on Enter/Space, so
+  // it's wired explicitly. Focus only follows a change, so a rejected Enter
+  // leaves the cursor put instead of yanking it to the active tile.
   const ARROW_DIRS = {
     ArrowLeft: [-1, 0],
     ArrowRight: [1, 0],
@@ -447,8 +437,6 @@
     return best;
   }
 
-  // Move keyboard focus to tile `i`, keeping the roving tabindex in sync so Tab
-  // still enters and leaves the grid at a single stop.
   function focusTile(i) {
     const g = document.querySelector(`.bl-hex[data-i="${i}"]`);
     if (!g) return;
@@ -459,8 +447,6 @@
     g.focus();
   }
 
-  // Describe a tile for assistive tech: its role in the current word, or its
-  // bloom state. Mirrors the visual cues render() sets below.
   function tileStatus(i, selSet, usedSet, anchor, lastSel) {
     if (i === anchor) return "start of current word";
     if (selSet.has(i))
@@ -499,19 +485,16 @@
         el.classList.add("bl-unused");
       }
 
-      // The "filled" border tracks committed (used) tiles regardless of the
-      // interaction state above, so a re-used tile keeps the cue while new tiles
-      // in the current word stay thin — distinguishing a fresh pick from re-use.
+      // The "filled" border tracks used tiles regardless of interaction state,
+      // so a re-used tile keeps the cue while fresh picks in the current word
+      // stay thin.
       if (usedSet.has(i)) el.classList.add("bl-filled");
 
-      // Mark tiles adjacent to the last selected so the player sees what's reachable.
       const reachable = !state.done && isAdjacent(lastSel, i);
       if (reachable) {
         el.classList.add("bl-adj");
       }
 
-      // Keep the accessible name + roving tabindex in step with the visuals:
-      // only the current entry tile stays in the Tab order; arrows move within.
       const hint = reachable && !selSet.has(i) ? ", press Enter to add" : "";
       el.setAttribute(
         "aria-label",
@@ -525,8 +508,8 @@
     cw.textContent = currentWord() || " ";
 
     const wl = document.getElementById("bl-words");
-    // The goal nudge shows only on a fresh/restarted board (wordCount 0); once
-    // play starts the tiles and word-chain convey progress, so it steps aside.
+    // The goal nudge shows only on a fresh board; once play starts, the tiles
+    // and word-chain convey progress.
     const wordCount = state.words.length;
     const statusTxt =
       wordCount === 0
@@ -541,15 +524,14 @@
     `;
 
     if (state.done) {
-      // state.done is only set on a win, so the board is full here. The praise
-      // word is the only score signal, scaling with how few words it took.
+      // The praise word is the only score signal, scaling with how few words it
+      // took.
       const text =
         wordCount < BOARD.targetWords
           ? `Incredible!`
           : wordCount === BOARD.targetWords
             ? `Amazing!`
             : `Nice!`;
-      // Streak + Share render as one muted, dot-separated row after the praise.
       const streak =
         records.streak > 0 ? `🔥 ${records.streak} day streak` : "";
       const meta = [
@@ -568,8 +550,7 @@
 
   // ─── Toast ─────────────────────────────────────────────────────────────────
   let toastTimer;
-  // tone "error" (default) reads coral-red; "info" reads neutral, so hints and
-  // success messages don't masquerade as rejections.
+  // tone "info" reads neutral so hints/success don't masquerade as rejections.
   function toast(msg, { tone = "error", ms = 1600 } = {}) {
     const el = document.getElementById("bl-toast");
     el.textContent = msg;
@@ -591,8 +572,8 @@
       toast(`"${word.toUpperCase()}" not in dictionary`);
       return;
     }
-    // Anti-abuse ceiling only — a legit game never reaches this many words.
-    // Refuse the word rather than ending the round, so there's no fail state.
+    // Anti-abuse ceiling only. Refuse the word rather than ending the round, so
+    // there's no fail state.
     if (state.words.length >= BOARD.targetWords + WORD_CAP_OVER_TARGET) {
       toast("Word limit reached");
       return;
@@ -607,7 +588,6 @@
     state.active = cells[cells.length - 1];
     selection = [state.active];
 
-    // The only end state now is a win: every tile covered.
     const won = state.used.length >= BOARD.totalTiles;
     if (won) state.done = true;
     updateRecords(state.used.length);
@@ -620,8 +600,8 @@
     }
   }
 
-  // Pop a single tile after `delay`ms: add the class to scale up, remove it a
-  // beat later to settle back (a CSS transition — see games.css for why).
+  // Pop a single tile after `delay`ms: add the class, remove it a beat later so
+  // the CSS transition settles back (see games.css).
   const BLOOM_MS = 300;
   function popTile(cell, className, delay) {
     const el = document.querySelector(`.bl-hex[data-i="${cell}"]`);
@@ -632,7 +612,6 @@
     }, delay);
   }
 
-  // Flash a bloom across each cell of a just-entered word.
   function bloomCells(cells) {
     cells.forEach((c, i) => popTile(c, "bl-bloom", i * 55));
   }
@@ -656,10 +635,9 @@
     });
   }
 
-  // Incremental delete: drop the last selected letter, or if none past the
-  // anchor, un-enter the last word and re-select all but its final letter (to
-  // swap it). Stays live after a win — clearing `done` lets the player rework
-  // the tail for a lower word count.
+  // Drop the last selected letter, or if none past the anchor, un-enter the last
+  // word and re-select all but its final letter (to swap it). Stays live after a
+  // win so the player can rework the tail for a lower word count.
   function deleteLast() {
     if (selection.length > 1) {
       selection.pop();
@@ -684,7 +662,6 @@
   }
 
   function showHint() {
-    // Available even after a win — a replay for a lower word count can still use it.
     toast(`The word ${LONGEST_WORD.toUpperCase()} is possible today`, {
       tone: "info",
       ms: 3500,
@@ -692,15 +669,12 @@
   }
 
   // Build the shareable score string. After a completion it shares today's BEST
-  // (fewest-word) win, not whatever redo is on the board; before that, current
-  // progress. The bouquet:
-  //   🌸 word entered   ⚪ open target slot   🏆 words under target (the brag)
+  // (fewest-word) win, not whatever redo is on the board. The bouquet:
+  //   🌸 word entered   ⚪ open target slot   🏆 words under target
   //   🌿 word past target (overshoot is fine — the goal is filling the board)
-  // Non-winning states append the tile fraction.
   function shareText() {
     const target = BOARD.targetWords;
-    // bestWords is only ever set on a full-board win, so a non-null value means
-    // the board's been completed today — share that best run.
+    // bestWords is only set on a full-board win, so non-null means completed today.
     const won = state.bestWords !== null;
     const used = won ? state.bestWords : state.words.length;
     const tilesUsed = won
@@ -713,11 +687,9 @@
     const fillerChar = won ? "🏆" : "⚪";
     const bouquet =
       "🌸".repeat(blooms) + fillerChar.repeat(filler) + "🌿".repeat(extras);
-    // A win is just the flowers; unfinished games append the tile fraction.
     const line = won
       ? bouquet
       : `${bouquet} ${tilesUsed}/${BOARD.totalTiles} tiles`;
-    // Keep the share to two lines: streak rides on the header line, subtly.
     const header =
       records.streak > 0
         ? `Blossom ${TODAY_KEY} · 🔥 ${records.streak}`
@@ -725,8 +697,8 @@
     return `${header}\n${line}`;
   }
 
-  // Last-resort copy for browsers without the async clipboard API (older /
-  // in-app webviews): a hidden textarea + execCommand.
+  // Last-resort copy for browsers without the async clipboard API: a hidden
+  // textarea + execCommand.
   function copyFallback(text) {
     try {
       const ta = document.createElement("textarea");
@@ -748,11 +720,10 @@
 
   function share() {
     const text = shareText();
-    // Prefer the clipboard API where it exists (the familiar "Copied" toast on
-    // desktop and modern mobile). `navigator.clipboard` is undefined in
-    // non-secure contexts and some in-app browsers — accessing .writeText there
-    // throws synchronously, which a .catch() wouldn't catch — so guard it, then
-    // fall back to the native share sheet, then to a manual copy.
+    // `navigator.clipboard` is undefined in non-secure contexts and some in-app
+    // browsers, and accessing .writeText there throws synchronously (a .catch()
+    // wouldn't catch it) — so guard it, then fall back to the share sheet, then
+    // a manual copy.
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard
         .writeText(text)
@@ -789,8 +760,7 @@
   document.getElementById("bl-hint-btn").addEventListener("click", showHint);
 
   // ─── Modal focus management ────────────────────────────────────────────────
-  // Keep keyboard/screen-reader users from getting stranded behind an open
-  // dialog: move focus into it on open, trap Tab inside it, close on Escape, and
+  // Move focus into the dialog on open, trap Tab inside it, close on Escape, and
   // hand focus back to whatever opened it on close.
   let modalReturnFocus = null;
   function modalFocusables(overlay) {
@@ -836,14 +806,11 @@
     });
   }
 
-  // Restart is destructive, so it confirms first — unless the player has opted
-  // out via the dialog's "Don't ask again" checkbox (a one-way preference,
-  // cleared only by wiping site data).
+  // Restart confirms first, unless the player opted out via the dialog's "Don't
+  // ask again" checkbox.
   const RESTART_NOCONFIRM_KEY = "blossom-restart-noconfirm";
   const confirmModal = document.getElementById("bl-confirm");
   function requestRestart() {
-    // Guard the read: a storage-blocked browser throws on access, and we
-    // don't want a dead Restart button — just fall through to the prompt.
     let noConfirm = false;
     try {
       noConfirm = !!localStorage.getItem(RESTART_NOCONFIRM_KEY);
@@ -876,10 +843,9 @@
   });
 
   const modal = document.getElementById("bl-modal");
-  // First-time players land on a bare grid with no rules — open the how-to
-  // once so the chain mechanic (and the header buttons) are discoverable.
+  // First-time players land on a bare grid with no rules — open the how-to once
+  // so the chain mechanic is discoverable.
   const HELP_SEEN_KEY = "blossom-help-seen";
-  // Guard the read: localStorage access throws in storage-blocked browsers.
   let helpSeen = false;
   try {
     helpSeen = !!localStorage.getItem(HELP_SEEN_KEY);
@@ -911,8 +877,7 @@
   // Fingerprinting can't bust the HTML that carries the script URLs, so a
   // returning visitor can boot old code. BLOSSOM_BUILD is baked into that
   // (possibly stale) HTML; a mismatch with the fresh file means a newer deploy
-  // exists. Driven by the events below rather than the poll, since stale code
-  // only surfaces when a tab is reopened or refocused.
+  // exists.
   async function reloadIfCodeStale() {
     try {
       const res = await fetch("/blossom-version.txt", { cache: "no-store" });
@@ -931,7 +896,7 @@
     refreshIfStale();
     reloadIfCodeStale();
   });
-  // visibilitychange/pageshow miss the case of a tab left focused across
-  // midnight, so also poll the date once a minute.
+  // visibilitychange/pageshow miss a tab left focused across midnight, so also
+  // poll the date once a minute.
   setInterval(refreshIfStale, 60000);
 })();

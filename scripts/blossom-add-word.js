@@ -1,16 +1,14 @@
 #!/usr/bin/env node
 // Add one or more words to Blossom's word bank and rebuild the served word list.
-// The counterpart to blossom-remove-word.js — for a real word the game rejects
-// (slang like "yeet", a valid word SCOWL-60 just doesn't carry):
+// The counterpart to blossom-remove-word.js — for a real word the game rejects:
 //
 //   node scripts/blossom-add-word.js <word> [word2 ...]
 //   make blossom-add-word word="yeet zonk"
 //
 // Words go into the committed word_bank.txt (not the gitignored, re-fetched
-// scowl-60.txt, where edits wouldn't survive), then words.js is rebuilt. The
-// build merges the gen pool into the validation set, so a bank word becomes BOTH
-// a valid play AND a possible daily target — not the place for validate-only words.
-// Words must be 3-8 letters (a-z); the build ignores anything outside that range.
+// scowl-60.txt). The build merges the gen pool into the validation set, so a bank
+// word becomes BOTH a valid play AND a possible daily target — not the place for
+// validate-only words. Words must be 3-8 letters (a-z).
 
 const fs = require('fs');
 const path = require('path');

@@ -6,10 +6,9 @@
 //   make blossom-remove-word word="foo bar"
 //
 // Deletes the word (case-insensitive, whole line) from both word_bank.txt and
-// scowl-60.txt (gitignored — skipped with a warning if absent), then rebuilds
-// words.js. We edit the *sources* rather than keep a blocklist, so no standing
-// list of pulled slurs lives in the repo; a word must leave BOTH banks to leave
-// validation, since the build merges them.
+// scowl-60.txt, then rebuilds words.js. We edit the *sources* rather than keep a
+// blocklist, so no standing list of pulled slurs lives in the repo; a word must
+// leave BOTH banks to leave validation, since the build merges them.
 
 const fs = require('fs');
 const path = require('path');

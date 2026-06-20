@@ -1,6 +1,5 @@
-// Shared board generator: works in both browser (sets window.BlossomGen)
-// and Node (exports via module.exports), so the daily board logic is
-// reusable by the CLI solver in scripts/blossom-solve.js.
+// Shared board generator: works in both browser (window.BlossomGen) and Node
+// (module.exports), so the daily board logic is reusable by the CLI scripts.
 (function (root) {
   function mulberry32(seed) {
     return function () {
@@ -30,8 +29,8 @@
     return h >>> 0;
   }
 
-  // Offset coords on a notional 12x12 grid. Adjacency: same row ±1, row±1
-  // with a col shift that keeps pointy-top hexes aligned.
+  // Offset coords on a notional 12x12 grid. Adjacency: same row ±1, row±1 with
+  // a col shift that keeps pointy-top hexes aligned.
   const GRID = 12;
   const idx = (r, c) => r * GRID + c;
   const toRC = (i) => [Math.floor(i / GRID), i % GRID];
@@ -54,9 +53,8 @@
     return neighbors(a).includes(b);
   }
 
-  // Manhattan-style distance on this offset hex grid, used as a placement
-  // tiebreaker to keep the blossom hugging the center.
-  // https://stackoverflow.com/questions/5084801
+  // Distance on this offset hex grid, used as a placement tiebreaker to keep the
+  // blossom hugging the center. https://stackoverflow.com/questions/5084801
   function hexDistance(a, b) {
     const [ar, ac] = toRC(a);
     const [br, bc] = toRC(b);
@@ -67,10 +65,9 @@
       : Math.max(Math.abs(dr), Math.abs(dc));
   }
 
-  // Order `items` by weighted sampling without replacement: higher-weight
-  // items tend toward the front, but it stays random per the rng. Used so the
-  // builder can try its preferred word first and fall back through the rest in
-  // a sensible order if placement dead-ends.
+  // Order `items` by weighted sampling without replacement, so the builder tries
+  // its preferred word first and falls back through the rest if placement
+  // dead-ends.
   function weightedShuffle(items, weights, rng) {
     const pool = items.map((it, i) => ({ it, w: weights[i] }));
     let total = pool.reduce((s, x) => s + x.w, 0);
@@ -94,39 +91,30 @@
     const targetTiles = opts.targetTiles || 21;
     const minTiles = opts.minTiles || 15;
     const maxWords = opts.maxWords || 8;
-    // Mild bias toward word lengths not yet used in this board. Each prior use
-    // of a length multiplies that length's weight by (1+alpha)^-count, so the
-    // first 5-letter word nudges later picks toward other lengths — enough to
-    // sway the mix, not enough to override the overlap weighting. Tunable.
+    // Bias toward word lengths not yet used in this board: each prior use of a
+    // length multiplies its weight by (1+alpha)^-count.
     const lengthAlpha = opts.lengthAlpha != null ? opts.lengthAlpha : 0.6;
-    // Intrinsic per-length preference, applied on top of lengthAlpha. Lengths
-    // absent from the map default to 1. The short (3) and long (8) extremes are
-    // damped so they sprinkle in for variety without dominating the mix.
+    // Intrinsic per-length preference (default 1), damping the short/long
+    // extremes so they sprinkle in without dominating the mix.
     const lengthWeight = opts.lengthWeight || { 4: 0.75, 5: 0.9, 7: 1.15, 8: 0.5 };
-    // Localized-overlap weighting. When picking the next word, we reward letters
-    // that can reuse a tile already sitting near the junction (the last placed
-    // cell) — and reward the word's *earliest* letters most, since those are the
-    // ones the greedy placer can actually fold back onto an existing tile. This
-    // counters the old whole-board overlap signal, which saturated late in
-    // generation and let the final words wrap the rim on fresh tiles.
+    // Localized-overlap weighting: reward letters that can reuse a tile near the
+    // junction, weighting the word's earliest letters most (the ones the greedy
+    // placer can actually fold back onto an existing tile).
     const localRadius = opts.localRadius != null ? opts.localRadius : 2;
     const overlapDecay = opts.overlapDecay != null ? opts.overlapDecay : 0.8;
-    // Floor weight for words with no local overlap. Controls how aggressively
-    // the overlap signal crowds out non-overlapping candidates.
+    // Floor weight for words with no local overlap.
     const overlapFloor = opts.overlapFloor != null ? opts.overlapFloor : 0.3;
     const targetLetters = targetTiles * 1.5;
-    // Runaway guard: cap total word-placement attempts across all backtracking
-    // before giving up and reseeding. Normal generation never approaches this.
+    // Runaway guard: cap total placement attempts before reseeding. Normal
+    // generation never approaches this.
     let budget = opts.budget || 20000;
 
     const genByFirst = {};
     for (const w of genPool) (genByFirst[w[0]] ||= []).push(w);
 
-    // Per-letter correction factors: up-weight candidates ending on letters
-    // that are common chain-starters in the pool, down-weight those ending on
-    // letters that are rare starters. Applied to the next-word weight so the
-    // Markov chain's stationary distribution tracks the pool's first-letter
-    // distribution instead of its last-letter distribution.
+    // Per-letter correction factors: up-weight candidates ending on letters that
+    // are common chain-starters, down-weight rare ones, so the chain's stationary
+    // distribution tracks the pool's first-letter (not last-letter) distribution.
     const poolFirstCount = {};
     const poolLastCount = {};
     for (const w of genPool) {
@@ -139,13 +127,10 @@
         ((poolFirstCount[l] || 0) + 1e-9) / (poolLastCount[l] + 1e-9);
     }
 
-    // The rng is threaded continuously through every decision below — seed
-    // word, each subsequent word, and every tile placement all draw from this
-    // one stream. That's why two different dates never produce the same board
-    // even when they happen to pick the same first word: the streams diverge
-    // on the very next draw. The board is byte-identical only for an identical
-    // seed (i.e. the same date). Keep it that way — never key a decision off
-    // word identity via a lookup; always pull from this rng.
+    // Every decision below — seed word, each subsequent word, every tile
+    // placement — draws from this one rng stream, so the board is byte-identical
+    // only for an identical seed (the same date). Keep it that way: never key a
+    // decision off word identity; always pull from this rng.
     const rng = mulberry32(seed);
     const start = idx(Math.floor(GRID / 2), Math.floor(GRID / 2));
 
@@ -158,11 +143,10 @@
       return a;
     }
 
-    // Place `letter` adjacent to prevCell (or at center if prevCell is null).
-    // Reuse an adjacent tile already holding it; otherwise take the empty
-    // neighbor most surrounded by filled tiles, breaking ties toward the
-    // center to keep the blossom compact. Returns the cell, or null if boxed
-    // in (no empty neighbor) — the caller's signal to backtrack.
+    // Place `letter` adjacent to prevCell (or at center if null). Reuse an
+    // adjacent tile already holding it; otherwise take the empty neighbor most
+    // surrounded by filled tiles, ties broken toward center to stay compact.
+    // Returns the cell, or null if boxed in — the caller's signal to backtrack.
     function placeLetter(tiles, letter, prevCell) {
       if (prevCell === null) {
         tiles.set(start, letter);
@@ -196,10 +180,10 @@
     // Mutable build state, reset per seed-word attempt below.
     let tiles, seq, chain, used, lengthCounts, allLetters;
 
-    // Lay `word` onto the board. The first letter is the shared tile (already
-    // placed by the previous word, or the center for the first word), so
-    // letters are placed from index 1. Returns the cells newly added (for
-    // rollback) and whether placement succeeded.
+    // Lay `word` onto the board. The first letter is the shared tile (placed by
+    // the previous word, or the center for the first word), so letters are placed
+    // from index 1. Returns the cells newly added (for rollback) and whether it
+    // succeeded.
     function placeWord(word, isFirst) {
       const added = [];
       let prev;
@@ -222,8 +206,8 @@
       return { ok: true, added };
     }
 
-    // Recursively append words to the chain, backtracking on dead-ends.
-    // Returns true once a placed chain meets the size/word targets.
+    // Recursively append words to the chain, backtracking on dead-ends. Returns
+    // true once a placed chain meets the size/word targets.
     function extend() {
       if (allLetters.length >= targetLetters || chain.length >= maxWords) {
         return tiles.size >= minTiles;
@@ -232,17 +216,12 @@
       const candidates = (genByFirst[last] || []).filter((w) => !used.has(w));
       if (!candidates.length) return tiles.size >= minTiles;
 
-      // Simulate the greedy placer's path from the junction, assuming no tile
-      // reuse occurs (i.e. each step lands on a fresh empty cell). placeLetter
-      // always picks the empty neighbour with the most filled neighbours, ties
-      // broken by proximity to center — we run that same deterministic rule to
-      // predict where the placer would be at each word position li. The letters
-      // on actual board tiles adjacent to predictedPath[li-1] are then exactly
-      // the set the placer CAN reuse at step li.
-      //
-      // This replaces the old hex-distance localSet approach, which credited
-      // letters on tiles the placer couldn't actually reach at that position,
-      // causing larger localRadius values to counterintuitively reduce overlap.
+      // Simulate the greedy placer's path from the junction assuming no tile
+      // reuse (each step lands on a fresh empty cell), running placeLetter's same
+      // deterministic rule to predict where it would be at each position li. The
+      // letters on board tiles adjacent to predictedPath[li-1] are then exactly
+      // the set the placer CAN reuse at step li. (A hex-distance approximation
+      // here credits unreachable tiles, making larger localRadius reduce overlap.)
       const junction = seq[seq.length - 1].cellIdx;
       const predictedPath = [junction];
       const predOccupied = new Set(tiles.keys());
@@ -261,8 +240,7 @@
         predictedPath.push(best);
         predOccupied.add(best);
       }
-      // localReachable[li-1] = letters on board tiles adjacent to the predicted
-      // cell at step li-1, i.e. the letters reusable by the placer at position li.
+      // localReachable[li-1] = letters reusable by the placer at position li.
       const localReachable = [];
       for (let li = 1; li < predictedPath.length; li++) {
         const reachable = new Set();
@@ -308,9 +286,9 @@
       return false;
     }
 
-    // Try seed words in a random order, backtracking through the search until
-    // one yields a complete board. (A whole-board restart is now rare — most
-    // dead-ends are recovered by trying the next word, not the next seed.)
+    // Try seed words in a random order until one yields a complete board. A
+    // whole-board restart is rare — most dead-ends recover by trying the next
+    // word, not the next seed.
     for (const seedWord of shuffle(genPool)) {
       if (budget <= 0) break;
       tiles = new Map();
@@ -333,13 +311,13 @@
           tiles: new Map(tiles),
           seq: seq.slice(),
           start,
-          targetWords: chain.length, // ideal # of words to complete
-          totalTiles: tiles.size, // # of tiles on the board
+          targetWords: chain.length,
+          totalTiles: tiles.size,
         };
       }
     }
 
-    // Exhausted the pool (or the attempt budget) without a board — reseed.
+    // Exhausted the pool (or budget) without a board — reseed.
     return generateBoard((seed + 1) >>> 0, genPool, options);
   }
 
