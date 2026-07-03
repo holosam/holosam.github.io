@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-// Regenerate assets/blossom/words.js from SCOWL/ESDB size-60 (US English) and
-// assets/blossom/word_bank.txt. Run with:
+// Regenerate assets/blossom/words.js from SCOWL/ESDB size-60 (US English),
+// assets/blossom/word_bank.txt, and assets/blossom/extra_words.txt. Run with:
 //   node scripts/blossom-build-words.js
 //
 // Two output lists:
 //   BLOSSOM_WORDS     — validation pool: SCOWL size 60 (~110k, common English
-//                       with inflections, sans the obscure tail) + all gen words.
+//                       with inflections, sans the obscure tail) + all gen
+//                       words + extra_words.txt (committed validate-only
+//                       additions; see blossom-add-word.js).
 //   BLOSSOM_GEN_WORDS — chain-generation pool: the curated word_bank.txt, capped
 //                       at 8 letters to keep daily chains approachable. Longer
 //                       words still validate, they just won't be targets.
@@ -30,6 +32,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const SCOWL_PATH = path.join(ROOT, 'assets/blossom/scowl-60.txt');
 const WORD_BANK_PATH = path.join(ROOT, 'assets/blossom/word_bank.txt');
+const EXTRA_PATH = path.join(ROOT, 'assets/blossom/extra_words.txt');
 const OUT_PATH = path.join(ROOT, 'assets/blossom/words.js');
 
 const MIN_LEN = 3;
@@ -77,18 +80,33 @@ const gen = fs.readFileSync(WORD_BANK_PATH, 'utf8')
 const genSet = new Set(gen);
 for (const w of genSet) valid.add(w);
 
+// Validate-only additions: real words the game rejected that shouldn't become
+// daily targets. Merged into validation, never into the gen pool.
+if (fs.existsSync(EXTRA_PATH)) {
+  fs.readFileSync(EXTRA_PATH, 'utf8')
+    .split('\n')
+    .map(s => s.trim().toLowerCase())
+    .filter(w => onlyLowerLetters.test(w))
+    .filter(w => w.length >= MIN_LEN && w.length <= MAX_LEN)
+    .forEach(w => valid.add(w));
+}
+
 const validSorted = [...valid].sort();
 const genSorted = [...genSet].sort();
 
 const out = `// Word lists for Blossom. GENERATED — do not edit by hand.
 // Regenerate with: node scripts/blossom-build-words.js
 //   BLOSSOM_WORDS     = validation pool (SCOWL ESDB size 60, US English,
-//                       lengths ${MIN_LEN}-${MAX_LEN}, plus all generation words).
+//                       lengths ${MIN_LEN}-${MAX_LEN}, plus all generation words
+//                       and extra_words.txt).
 //   BLOSSOM_GEN_WORDS = chain-generation pool (curated word_bank.txt,
 //                       capped at ${GEN_MAX_LEN} letters).
 // See scripts/blossom-build-words.js for source, license, and trade-offs.
-window.BLOSSOM_WORDS = ${JSON.stringify(validSorted)};
-window.BLOSSOM_GEN_WORDS = ${JSON.stringify(genSorted)};
+// Each list ships as one newline-joined string, split at load — smaller on the
+// wire and much cheaper for mobile JS engines to parse than a ~${Math.round(validSorted.length / 1000)}k-element
+// array literal.
+window.BLOSSOM_WORDS = ${JSON.stringify(validSorted.join('\n'))}.split("\\n");
+window.BLOSSOM_GEN_WORDS = ${JSON.stringify(genSorted.join('\n'))}.split("\\n");
 `;
 
 fs.writeFileSync(OUT_PATH, out);

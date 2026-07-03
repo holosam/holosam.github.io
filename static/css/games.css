@@ -212,6 +212,8 @@ body.game-body {
     -webkit-tap-highlight-color: transparent;
     /* overflow visible so lifted petals + shadows aren't clipped */
     overflow: visible;
+    /* drag-to-select: a touch drag on the board selects tiles, not scrolls */
+    touch-action: none;
 }
 
 .bl-hex polygon {

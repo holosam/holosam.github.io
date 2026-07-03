@@ -224,7 +224,7 @@
             <p class="bl-demo-caption" id="bl-demo-caption"></p>
           </div>
           <ol>
-            <li>Start at the highlighted tile. Tap adjacent tiles to spell a word, then hit Enter. Each new word begins where the last one ended.</li>
+            <li>Start at the highlighted tile. Tap or drag across adjacent tiles to spell a word, then hit Enter. Each new word begins where the last one ended.</li>
             <li>Tiles can be used again, both within a word and across words. Keep linking words until every tile is used. Aim for as few words as you can.</li>
             <li>The Delete button undoes one letter. If you're stuck, tap 💡 for a hint.</li>
           </ol>
@@ -267,37 +267,34 @@
     return pts.join(" ");
   }
 
-  function buildGrid() {
-    const svg = document.getElementById("bl-grid");
+  // Shared by the game grid and the how-to demo: compute a tight viewBox
+  // around `tilesMap` and add one hex group per tile. Returns the groups
+  // keyed by cell, plus the viewBox size.
+  function buildHexes(svg, tilesMap, pad) {
     const SVG_NS = "http://www.w3.org/2000/svg";
 
     let minX = Infinity,
       minY = Infinity,
       maxX = -Infinity,
       maxY = -Infinity;
-    for (const i of BOARD.tiles.keys()) {
+    for (const i of tilesMap.keys()) {
       const { x, y } = cellXY(i);
       minX = Math.min(minX, x - HEX_SIZE);
       maxX = Math.max(maxX, x + HEX_SIZE);
       minY = Math.min(minY, y - HEX_SIZE);
       maxY = Math.max(maxY, y + HEX_SIZE);
     }
-    const pad = 4;
-    const vbX = minX - pad;
-    const vbY = minY - pad;
-    const vbW = maxX - minX + pad * 2;
-    const vbH = maxY - minY + pad * 2;
-    svg.setAttribute("viewBox", `${vbX} ${vbY} ${vbW} ${vbH}`);
-    svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
-    // Give the wrapper the aspect ratio so CSS can size the grid against both
-    // viewport width and height; aspect-ratio fixes the box, so animation
-    // transforms can overflow without resizing it (see games.css).
-    const aspect = document.getElementById("bl-grid-aspect");
-    aspect.style.setProperty("--bl-aspect", `${vbW / vbH}`);
+    const vbW = maxX - minX + pad.left + pad.right;
+    const vbH = maxY - minY + pad.top + pad.bottom;
+    svg.setAttribute(
+      "viewBox",
+      `${minX - pad.left} ${minY - pad.top} ${vbW} ${vbH}`,
+    );
 
+    const els = new Map();
     // Render top-down so a lifted hex always paints over the row above it.
     // (SVG has no z-index; later siblings paint on top.)
-    const sortedTiles = [...BOARD.tiles.entries()].sort(
+    const sortedTiles = [...tilesMap.entries()].sort(
       ([a], [b]) => toRC(a)[0] - toRC(b)[0],
     );
     for (const [i, letter] of sortedTiles) {
@@ -305,11 +302,6 @@
 
       const g = document.createElementNS(SVG_NS, "g");
       g.setAttribute("class", "bl-hex");
-      g.setAttribute("data-i", i);
-      // Roving tabindex: render() promotes the current entry tile to 0 so Tab
-      // enters the grid at one stop, not 21.
-      g.setAttribute("role", "button");
-      g.setAttribute("tabindex", "-1");
 
       const poly = document.createElementNS(SVG_NS, "polygon");
       poly.setAttribute("points", hexPoints(x, y));
@@ -323,12 +315,47 @@
 
       g.appendChild(poly);
       g.appendChild(text);
+      svg.appendChild(g);
+      els.set(i, g);
+    }
+    return { els, vbW, vbH };
+  }
+
+  function buildGrid() {
+    const svg = document.getElementById("bl-grid");
+    const { els, vbW, vbH } = buildHexes(svg, BOARD.tiles, {
+      left: 4,
+      right: 4,
+      top: 4,
+      bottom: 4,
+    });
+    svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+    // Give the wrapper the aspect ratio so CSS can size the grid against both
+    // viewport width and height; aspect-ratio fixes the box, so animation
+    // transforms can overflow without resizing it (see games.css).
+    const aspect = document.getElementById("bl-grid-aspect");
+    aspect.style.setProperty("--bl-aspect", `${vbW / vbH}`);
+
+    for (const [i, g] of els) {
+      g.setAttribute("data-i", i);
+      // Roving tabindex: render() promotes the current entry tile to 0 so Tab
+      // enters the grid at one stop, not 21.
+      g.setAttribute("role", "button");
+      g.setAttribute("tabindex", "-1");
       // Per-element listeners rather than one delegated handler on the SVG:
       // reading the focused tile back off document.activeElement is unreliable
       // for SVG nodes across browsers, so bind directly and close over `i`.
-      g.addEventListener("click", () => onTileClick(i));
+      g.addEventListener("click", () => {
+        // A drag that added tiles ends with a synthetic click on the origin
+        // tile — swallow it so it doesn't also tap-toggle.
+        if (suppressClick) {
+          suppressClick = false;
+          return;
+        }
+        onTileClick(i);
+      });
       g.addEventListener("keydown", (e) => onTileKey(e, i));
-      svg.appendChild(g);
+      g.addEventListener("pointerdown", (e) => onTilePointerDown(e, i));
     }
   }
 
@@ -451,6 +478,72 @@
     g.setAttribute("tabindex", "0");
     g.focus();
   }
+
+  // ─── Drag to select ────────────────────────────────────────────────────────
+  // A press becomes a drag once the pointer crosses onto a different tile;
+  // a plain tap ends without moving, and the browser's click event drives the
+  // tap path above. Drags only ever ADD letters — no retrace-to-undo — because
+  // dragging back over a previous tile is how letters are reused (e.g. the
+  // second A in CANAL). Undo stays on tap-the-last-tile and Delete.
+  // (Requires touch-action: none on the grid — see games.css.)
+  let drag = null;
+  let suppressClick = false;
+
+  // Hit-test against a disc smaller than the hex, leaving a dead zone between
+  // tiles so a finger wobbling along a shared edge can't ping-pong letters in.
+  function tileFromEvent(e) {
+    const svg = document.getElementById("bl-grid");
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return null;
+    const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(ctm.inverse());
+    for (const i of BOARD.tiles.keys()) {
+      const { x, y } = cellXY(i);
+      if (Math.hypot(p.x - x, p.y - y) <= HEX_SIZE * 0.72) return i;
+    }
+    return null;
+  }
+
+  // Like onTileClick, minus the tap-to-undo branch: mid-drag, revisiting the
+  // last tile must be a no-op, not a toggle.
+  function dragAdd(i) {
+    if (state.done) return;
+    if (selection.length >= MAX_WORD_LEN) return;
+    const last = selection[selection.length - 1];
+    if (i === last || !isAdjacent(last, i)) return;
+    selection.push(i);
+    render();
+  }
+
+  function onTilePointerDown(e, i) {
+    suppressClick = false;
+    if (state.done) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    drag = { pointerId: e.pointerId, visited: i, moved: false };
+  }
+
+  document.addEventListener("pointermove", (e) => {
+    if (!drag || e.pointerId !== drag.pointerId) return;
+    const i = tileFromEvent(e);
+    if (i === null || i === drag.visited) return;
+    if (!drag.moved) {
+      drag.moved = true;
+      // The press is now a drag, so commit the pressed tile — unless it's
+      // already the head of the selection (starting a drag from the active
+      // tile must not toggle it the way a tap would).
+      if (drag.visited !== selection[selection.length - 1])
+        dragAdd(drag.visited);
+    }
+    dragAdd(i);
+    drag.visited = i;
+  });
+
+  function endDrag(e) {
+    if (!drag || e.pointerId !== drag.pointerId) return;
+    suppressClick = drag.moved;
+    drag = null;
+  }
+  document.addEventListener("pointerup", endDrag);
+  document.addEventListener("pointercancel", endDrag);
 
   function tileStatus(i, selSet, usedSet, anchor, lastSel) {
     if (i === anchor) return "start of current word";
@@ -745,6 +838,13 @@
 
   function share() {
     const text = shareText();
+    // On touch devices the native share sheet is the expected flow (one tap to
+    // the group chat); desktop gets the clipboard.
+    if (matchMedia("(pointer: coarse)").matches && navigator.share) {
+      // Rejects if the user dismisses the sheet — nothing to report there.
+      navigator.share({ text }).catch(() => {});
+      return;
+    }
     // `navigator.clipboard` is undefined in non-secure contexts and some in-app
     // browsers, and accessing .writeText there throws synchronously (a .catch()
     // wouldn't catch it) — so guard it, then fall back to the share sheet, then
@@ -757,7 +857,6 @@
       return;
     }
     if (navigator.share) {
-      // Rejects if the user dismisses the sheet — nothing to report there.
       navigator.share({ text }).catch(() => {});
       return;
     }
@@ -891,47 +990,22 @@
   const [DEMO_C, DEMO_A, DEMO_T, DEMO_E] = [...DEMO_TILES.keys()];
   const DEMO_WORD1 = [DEMO_C, DEMO_A, DEMO_T];
 
-  const demoEls = new Map();
-  const demoFinger = (function buildDemoGrid() {
-    const svg = document.getElementById("bl-demo-svg");
-    const SVG_NS = "http://www.w3.org/2000/svg";
-    let minX = Infinity,
-      minY = Infinity,
-      maxX = -Infinity,
-      maxY = -Infinity;
-    for (const i of DEMO_TILES.keys()) {
-      const { x, y } = cellXY(i);
-      minX = Math.min(minX, x - HEX_SIZE);
-      maxX = Math.max(maxX, x + HEX_SIZE);
-      minY = Math.min(minY, y - HEX_SIZE);
-      maxY = Math.max(maxY, y + HEX_SIZE);
-    }
-    // Extra bottom padding leaves room for the finger below the lower row.
-    svg.setAttribute(
-      "viewBox",
-      `${minX - 6} ${minY - 8} ${maxX - minX + 12} ${maxY - minY + 22}`,
+  const demoSvg = document.getElementById("bl-demo-svg");
+  // Extra bottom padding leaves room for the finger below the lower row.
+  const demoEls = buildHexes(demoSvg, DEMO_TILES, {
+    left: 6,
+    right: 6,
+    top: 8,
+    bottom: 14,
+  }).els;
+  const demoFinger = (function () {
+    const finger = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "text",
     );
-    for (const [i, letter] of DEMO_TILES) {
-      const { x, y } = cellXY(i);
-      const g = document.createElementNS(SVG_NS, "g");
-      g.setAttribute("class", "bl-hex");
-      const poly = document.createElementNS(SVG_NS, "polygon");
-      poly.setAttribute("points", hexPoints(x, y));
-      const text = document.createElementNS(SVG_NS, "text");
-      text.setAttribute("x", x);
-      text.setAttribute("y", y + 1);
-      text.setAttribute("text-anchor", "middle");
-      text.setAttribute("dominant-baseline", "central");
-      text.textContent = letter.toUpperCase();
-      g.appendChild(poly);
-      g.appendChild(text);
-      svg.appendChild(g);
-      demoEls.set(i, g);
-    }
-    const finger = document.createElementNS(SVG_NS, "text");
     finger.setAttribute("class", "bl-demo-finger");
     finger.textContent = "👆";
-    svg.appendChild(finger);
+    demoSvg.appendChild(finger);
     return finger;
   })();
 
@@ -1070,8 +1144,16 @@
   async function reloadIfCodeStale() {
     try {
       const res = await fetch("/blossom-version.txt", { cache: "no-store" });
-      if (res.ok && (await res.text()).trim() !== window.BLOSSOM_BUILD)
-        location.reload();
+      if (!res.ok) return;
+      const latest = (await res.text()).trim();
+      if (latest === window.BLOSSOM_BUILD) return;
+      // pageshow fires again after the reload below, and the CDN can keep
+      // serving the stale HTML for a while — without a guard that's
+      // mismatch → reload → mismatch on repeat. One attempt per build id.
+      const key = "blossom-reload-attempted";
+      if (sessionStorage.getItem(key) === latest) return;
+      sessionStorage.setItem(key, latest);
+      location.reload();
     } catch {}
   }
 

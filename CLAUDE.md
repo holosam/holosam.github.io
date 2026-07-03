@@ -39,7 +39,7 @@ Audience is technical. Use existing posts as canonical reference for voice.
 
 ## Getting a branch ready for PR
 
-I will test the changes locally using `make serve` and do the git operations.
+I will test the changes locally using `make serve` and do the git operations. Don't try to verify UI changes yourself (playwright, etc.), just say when changes are ready for me to test.
 
 Make sure we run through this checklist before merging:
 - **Libraries** - `brew update` and `brew upgrade` to make sure everything is on the latest version. If applicable:
