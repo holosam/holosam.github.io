@@ -1,6 +1,6 @@
 (function () {
   const VALID = new Set(window.BLOSSOM_WORDS);
-  const { toRC, isAdjacent, generateBoard, seedForDate, dateKey } =
+  const { toRC, idx, isAdjacent, generateBoard, seedForDate, dateKey } =
     window.BlossomGen;
 
   const MAX_WORD_LEN = 12; // longest word in the dictionary
@@ -217,10 +217,15 @@
         <div class="bl-modal-card" role="dialog" aria-modal="true" aria-labelledby="bl-modal-title">
           <button class="bl-modal-close" id="bl-modal-close" aria-label="Close">×</button>
           <h2 id="bl-modal-title">How to play</h2>
+          <div class="bl-demo" aria-hidden="true">
+            <div class="bl-demo-words" id="bl-demo-words"></div>
+            <div class="bl-demo-current" id="bl-demo-current"></div>
+            <svg id="bl-demo-svg" class="bl-demo-grid" xmlns="http://www.w3.org/2000/svg"></svg>
+            <p class="bl-demo-caption" id="bl-demo-caption"></p>
+          </div>
           <ol>
             <li>Start at the highlighted tile. Tap adjacent tiles to spell a word, then hit Enter. Each new word begins where the last one ended.</li>
-            <li>Previously used tiles can be reused both within a word and across words.</li>
-            <li>Keep linking words until every tile is used. Try to use as few words as possible.</li>
+            <li>Tiles can be used again, both within a word and across words. Keep linking words until every tile is used. Aim for as few words as you can.</li>
             <li>The Delete button undoes one letter. If you're stuck, tap 💡 for a hint.</li>
           </ol>
           <p class="bl-modal-foot">The board resets at midnight, so come back tomorrow to play a new one!</p>
@@ -438,10 +443,10 @@
   }
 
   function focusTile(i) {
-    const g = document.querySelector(`.bl-hex[data-i="${i}"]`);
+    const g = document.querySelector(`#bl-grid .bl-hex[data-i="${i}"]`);
     if (!g) return;
     document
-      .querySelectorAll(".bl-hex")
+      .querySelectorAll("#bl-grid .bl-hex")
       .forEach((el) => el.setAttribute("tabindex", "-1"));
     g.setAttribute("tabindex", "0");
     g.focus();
@@ -456,44 +461,58 @@
   }
 
   // ─── Rendering ─────────────────────────────────────────────────────────────
+  // Shared by the game grid and the how-to demo, so the demo always shows the
+  // exact tile states a player will see. Returns whether the tile is reachable.
+  function paintTile(el, i, { selSet, usedSet, lastSel, anchor, multi, done }) {
+    el.classList.remove(
+      "bl-used",
+      "bl-unused",
+      "bl-sel",
+      "bl-active",
+      "bl-anchor",
+      "bl-adj",
+      "bl-filled",
+    );
+
+    if (selSet.has(i)) {
+      el.classList.add("bl-sel");
+      if (i === lastSel && multi) el.classList.add("bl-active");
+      if (i === anchor) el.classList.add("bl-anchor");
+    } else if (usedSet.has(i)) {
+      el.classList.add("bl-used");
+    } else {
+      el.classList.add("bl-unused");
+    }
+
+    // The "filled" border tracks used tiles regardless of interaction state,
+    // so a re-used tile keeps the cue while fresh picks in the current word
+    // stay thin.
+    if (usedSet.has(i)) el.classList.add("bl-filled");
+
+    const reachable = !done && isAdjacent(lastSel, i);
+    if (reachable) {
+      el.classList.add("bl-adj");
+    }
+    return reachable;
+  }
+
   function render() {
     const usedSet = new Set(state.used);
     const selSet = new Set(selection);
     const lastSel = selection[selection.length - 1];
     const anchor = selection[0];
+    const ctx = {
+      selSet,
+      usedSet,
+      lastSel,
+      anchor,
+      multi: selection.length > 1,
+      done: state.done,
+    };
 
-    document.querySelectorAll(".bl-hex").forEach((el) => {
+    document.querySelectorAll("#bl-grid .bl-hex").forEach((el) => {
       const i = parseInt(el.getAttribute("data-i"), 10);
-      el.classList.remove(
-        "bl-used",
-        "bl-unused",
-        "bl-sel",
-        "bl-active",
-        "bl-anchor",
-        "bl-adj",
-        "bl-filled",
-      );
-
-      if (selSet.has(i)) {
-        el.classList.add("bl-sel");
-        if (i === lastSel && selection.length > 1)
-          el.classList.add("bl-active");
-        if (i === anchor) el.classList.add("bl-anchor");
-      } else if (usedSet.has(i)) {
-        el.classList.add("bl-used");
-      } else {
-        el.classList.add("bl-unused");
-      }
-
-      // The "filled" border tracks used tiles regardless of interaction state,
-      // so a re-used tile keeps the cue while fresh picks in the current word
-      // stay thin.
-      if (usedSet.has(i)) el.classList.add("bl-filled");
-
-      const reachable = !state.done && isAdjacent(lastSel, i);
-      if (reachable) {
-        el.classList.add("bl-adj");
-      }
+      const reachable = paintTile(el, i, ctx);
 
       const hint = reachable && !selSet.has(i) ? ", press Enter to add" : "";
       el.setAttribute(
@@ -513,7 +532,7 @@
     const wordCount = state.words.length;
     const statusTxt =
       wordCount === 0
-        ? `Use every tile to win. Aim for ${BOARD.targetWords} words if you can.`
+        ? `Use every tile to win. Aim for ${BOARD.targetWords} words (or fewer) if you can.`
         : "";
 
     wl.innerHTML = `
@@ -603,13 +622,19 @@
   // Pop a single tile after `delay`ms: add the class, remove it a beat later so
   // the CSS transition settles back (see games.css).
   const BLOOM_MS = 300;
-  function popTile(cell, className, delay) {
-    const el = document.querySelector(`.bl-hex[data-i="${cell}"]`);
+  function popEl(el, className, delay) {
     if (!el) return;
     setTimeout(() => {
       el.classList.add(className);
       setTimeout(() => el.classList.remove(className), BLOOM_MS);
     }, delay);
+  }
+  function popTile(cell, className, delay) {
+    popEl(
+      document.querySelector(`#bl-grid .bl-hex[data-i="${cell}"]`),
+      className,
+      delay,
+    );
   }
 
   function bloomCells(cells) {
@@ -843,6 +868,180 @@
   });
 
   const modal = document.getElementById("bl-modal");
+  wireModalKeys(modal);
+  document.getElementById("bl-help-btn").addEventListener("click", openHelp);
+  document
+    .getElementById("bl-modal-close")
+    .addEventListener("click", () => closeModal(modal));
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) closeModal(modal);
+  });
+
+  // ─── How-to demo ───────────────────────────────────────────────────────────
+  // A four-tile board inside the help modal that replays CAT → TEA on loop.
+  // Tiles are painted through the same paintTile as the real board, so the
+  // demo shows the game's exact visual language: the anchor border, lifted
+  // adjacent tiles, the already-selected junction tile, and tile reuse.
+  const DEMO_TILES = new Map([
+    [idx(5, 5), "c"],
+    [idx(5, 6), "a"],
+    [idx(5, 7), "t"],
+    [idx(6, 6), "e"],
+  ]);
+  const [DEMO_C, DEMO_A, DEMO_T, DEMO_E] = [...DEMO_TILES.keys()];
+  const DEMO_WORD1 = [DEMO_C, DEMO_A, DEMO_T];
+
+  const demoEls = new Map();
+  const demoFinger = (function buildDemoGrid() {
+    const svg = document.getElementById("bl-demo-svg");
+    const SVG_NS = "http://www.w3.org/2000/svg";
+    let minX = Infinity,
+      minY = Infinity,
+      maxX = -Infinity,
+      maxY = -Infinity;
+    for (const i of DEMO_TILES.keys()) {
+      const { x, y } = cellXY(i);
+      minX = Math.min(minX, x - HEX_SIZE);
+      maxX = Math.max(maxX, x + HEX_SIZE);
+      minY = Math.min(minY, y - HEX_SIZE);
+      maxY = Math.max(maxY, y + HEX_SIZE);
+    }
+    // Extra bottom padding leaves room for the finger below the lower row.
+    svg.setAttribute(
+      "viewBox",
+      `${minX - 6} ${minY - 8} ${maxX - minX + 12} ${maxY - minY + 22}`,
+    );
+    for (const [i, letter] of DEMO_TILES) {
+      const { x, y } = cellXY(i);
+      const g = document.createElementNS(SVG_NS, "g");
+      g.setAttribute("class", "bl-hex");
+      const poly = document.createElementNS(SVG_NS, "polygon");
+      poly.setAttribute("points", hexPoints(x, y));
+      const text = document.createElementNS(SVG_NS, "text");
+      text.setAttribute("x", x);
+      text.setAttribute("y", y + 1);
+      text.setAttribute("text-anchor", "middle");
+      text.setAttribute("dominant-baseline", "central");
+      text.textContent = letter.toUpperCase();
+      g.appendChild(poly);
+      g.appendChild(text);
+      svg.appendChild(g);
+      demoEls.set(i, g);
+    }
+    const finger = document.createElementNS(SVG_NS, "text");
+    finger.setAttribute("class", "bl-demo-finger");
+    finger.textContent = "👆";
+    svg.appendChild(finger);
+    return finger;
+  })();
+
+  function demoRender(sel, used, done) {
+    const ctx = {
+      selSet: new Set(sel),
+      usedSet: new Set(used),
+      lastSel: sel[sel.length - 1],
+      anchor: sel[0],
+      multi: sel.length > 1,
+      done,
+    };
+    for (const [i, el] of demoEls) paintTile(el, i, ctx);
+    document.getElementById("bl-demo-current").textContent = done
+      ? ""
+      : sel.map((c) => DEMO_TILES.get(c)).join("");
+  }
+
+  function demoChips(words) {
+    document.getElementById("bl-demo-words").innerHTML = words
+      .map((w) => `<span class="bl-word-chip">${w}</span>`)
+      .join('<span class="bl-word-sep">›</span>');
+  }
+
+  function demoCaption(text) {
+    document.getElementById("bl-demo-caption").textContent = text;
+  }
+
+  function demoFingerMove(i) {
+    const { x, y } = cellXY(i);
+    demoFinger.style.transform = `translate(${x + 10}px, ${y + 30}px)`;
+  }
+  function demoFingerTap(i) {
+    demoFingerMove(i);
+    demoFinger.classList.add("bl-demo-finger--on");
+  }
+  function demoFingerHide() {
+    demoFinger.classList.remove("bl-demo-finger--on");
+  }
+
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  // Demo playback speed: 1 is the authored pace, higher is faster.
+  const DEMO_SPEED = 1.2;
+  demoFinger.style.transitionDuration = `${0.5 / DEMO_SPEED}s, 0.2s`;
+  // Checking modal.hidden stops the loop when the modal closes; bumping demoRun
+  // kills the stale loop still sleeping when the modal reopens.
+  let demoRun = 0;
+  async function runDemo() {
+    const run = ++demoRun;
+    const step = async (ms) => {
+      await sleep(ms / DEMO_SPEED);
+      return run === demoRun && !modal.hidden;
+    };
+    while (true) {
+      demoChips([]);
+      demoFingerHide();
+      demoFingerMove(DEMO_C);
+      demoRender([DEMO_C], [DEMO_C], false);
+      demoCaption("Start at the highlighted tile.");
+      if (!(await step(1700))) return;
+
+      demoCaption("Tap adjacent tiles to spell a word…");
+      demoFingerTap(DEMO_A);
+      if (!(await step(700))) return;
+      demoRender([DEMO_C, DEMO_A], [DEMO_C], false);
+      if (!(await step(600))) return;
+      demoFingerTap(DEMO_T);
+      if (!(await step(700))) return;
+      demoRender(DEMO_WORD1, [DEMO_C], false);
+      demoFingerHide();
+      if (!(await step(600))) return;
+
+      demoCaption("…then hit Enter.");
+      if (!(await step(900))) return;
+      demoChips(["CAT"]);
+      demoRender([DEMO_T], DEMO_WORD1, false);
+      DEMO_WORD1.forEach((c, k) => popEl(demoEls.get(c), "bl-bloom", k * 55));
+      if (!(await step(1400))) return;
+
+      demoCaption(
+        "The next word starts where the last one ended, so T is already selected.",
+      );
+      if (!(await step(2200))) return;
+
+      demoCaption("Tiles you've already used can be used again…");
+      demoFingerTap(DEMO_E);
+      if (!(await step(700))) return;
+      demoRender([DEMO_T, DEMO_E], DEMO_WORD1, false);
+      if (!(await step(600))) return;
+      demoFingerTap(DEMO_A);
+      if (!(await step(700))) return;
+      demoRender([DEMO_T, DEMO_E, DEMO_A], DEMO_WORD1, false);
+      demoFingerHide();
+      if (!(await step(900))) return;
+
+      demoChips(["CAT", "TEA"]);
+      demoRender([DEMO_A], [...DEMO_TILES.keys()], true);
+      demoCaption("Fill every tile to win. Aim for as few words as you can!");
+      [...DEMO_TILES.keys()].forEach((c, k) =>
+        popEl(demoEls.get(c), "bl-victory", k * 80),
+      );
+      if (!(await step(3000))) return;
+    }
+  }
+
+  function openHelp() {
+    openModal(modal);
+    runDemo();
+  }
+
   // First-time players land on a bare grid with no rules — open the how-to once
   // so the chain mechanic is discoverable.
   const HELP_SEEN_KEY = "blossom-help-seen";
@@ -850,22 +1049,12 @@
   try {
     helpSeen = !!localStorage.getItem(HELP_SEEN_KEY);
   } catch {}
-  wireModalKeys(modal);
   if (!helpSeen) {
-    openModal(modal);
+    openHelp();
     try {
       localStorage.setItem(HELP_SEEN_KEY, "1");
     } catch {}
   }
-  document
-    .getElementById("bl-help-btn")
-    .addEventListener("click", () => openModal(modal));
-  document
-    .getElementById("bl-modal-close")
-    .addEventListener("click", () => closeModal(modal));
-  modal.addEventListener("click", (e) => {
-    if (e.target === modal) closeModal(modal);
-  });
 
   // TODAY_KEY and BOARD are captured at module load. If a tab is left open
   // across midnight, the player would see yesterday's board with whatever

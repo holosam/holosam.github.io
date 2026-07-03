@@ -22,3 +22,4 @@ It's served purely as a static site with local browser storage.
 From speaking to initial players
 - >90% mobile only
 - Casual players (most people) just play till they fill the board. targetWords is meant as a goal for more hardcore players.
+- Players say things like "today's game was really fun/hard", meaning that having one canonical game per day is important (rather than easy/med/hard)
