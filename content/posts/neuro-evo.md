@@ -24,7 +24,7 @@ But either way, I got a bit stuck on the implementation of genetic crossover to 
 
 ## (Existing) Global Innovation Numbers
 
-In the original paper [Evolving Neural Networks through Augmenting Topologies](https://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf), there's an example of how two genomes create offspring by lining up gene innovation numbers. The innovation number is just a number assigned when the gene is created, so a node or connection created 5th on one genome will be lined up with the 5th gene created on another. When the topologies are different between two genomes, genes can be considered disjoint.
+In the original paper [Evolving Neural Networks through Augmenting Topologies](https://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf), there's an example of how two genomes create offspring by lining up gene innovation numbers. The innovation number is a global counter, meaning a new gene is given the next sequential number when it first appears, and if that same mutation crops up again, it reuses the same number. So two genes that share an innovation number share a historical origin and get lined up, even if the two genomes have otherwise diverged. When one genome has a gene the other lacks, it's considered disjoint.
 
 The example here from the paper shows how genomes with disjoint genes can create offspring:
 

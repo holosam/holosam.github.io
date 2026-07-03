@@ -3,9 +3,10 @@
 This is a personal blog hosted at https://holosam.dev/, built using Hugo.
 
 ## Relevant files
-- `content/_index.md` - homepage
+- `content/_index.md` - homepage and brief bio
 - `content/posts/` - all content
 - `assets/blossom` - Blossom game source and word banks (served via Hugo's fingerprint pipeline)
+- `personal/` - ideas and todo lists for ongoing and future projects (not checked in to git)
 - `Makefile` - common commands
 
 ## Branding
