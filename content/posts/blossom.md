@@ -76,7 +76,7 @@ Jun 19th - tuned letter placement and frequency bias (Alec's first PRs!)
 Jul  3rd - looping tutorial, playability QoL tweaks
 ```
 
-Thanks to everyone who's been giving me feedback! Espcially my family for helping me make it playable, and my friends for the encouragement.
+Thanks to everyone who's been giving me feedback! Especially my family for helping me make it playable, and my friends for the encouragement.
 
 [^1]: The game was originally hosted on a cloud provider with a persistent backend so she could view aggregated stats over time ([source code](https://github.com/holosam/blossom)). Now it's just on a static site with my other projects, more as a demo than anything else.
 
