@@ -23,7 +23,7 @@ Worldforge supports authors through every phase of writing: exploring ideas, bui
 
 Worldbuilding for a sci-fi or fantasy novel can be challenging at scale. Manual management of notes, storyboards, and spreadsheets is tedious. Writers feel pressure to "solve the whole puzzle" before writing because discovering an inconsistency 10,000 words in is devastating. 
 
-Mass-market AI tools are not yet solving this problem. Depending on a single 1M+ token context window in NotebookLM is not enough space, and still suffers from context rot and hallucinations which worsen as the canon grows.
+Mass-market AI tools are not yet solving this problem. Even with 1M+ context windows, tools like NotebookLM suffer from context rot and hallucinations that worsen as the canon grows.
 
 ## Product Description
 

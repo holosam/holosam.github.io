@@ -40,7 +40,7 @@ It takes a lot less willpower to buy and book a 5-pack of workout classes from t
 
 For me, this has worked best with a single, premium purchase.
 
-After starting and losing my journaling habit many times, what made it eventually stick was buying a titanium machined pen[^2] that is as much of a work of art as it is a writing instrument. I'm drawn to pick up it whenever I'm sitting at my desk.
+After starting and losing my journaling habit many times, what made it eventually stick was buying a titanium machined pen[^2] that is as much of a work of art as it is a writing instrument. I'm drawn to pick it up whenever I'm sitting at my desk.
 
 Similarly, I had wanted to stop eating cereal or protein bars for breakfast, but nothing was beating the convenience... until I bought a Hexclad pan that lives on top of the stove. Cooking eggs for breakfast is now a daily joy.[^3]
 

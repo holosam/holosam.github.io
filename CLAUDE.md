@@ -3,9 +3,10 @@
 This is a personal blog hosted at https://holosam.dev/, built using Hugo.
 
 ## Relevant files
-- `content/_index.md` - homepage
+- `content/_index.md` - homepage and brief bio
 - `content/posts/` - all content
 - `assets/blossom` - Blossom game source and word banks (served via Hugo's fingerprint pipeline)
+- `personal/` - ideas and todo lists for ongoing and future projects (not checked in to git)
 - `Makefile` - common commands
 
 ## Branding
@@ -34,11 +35,11 @@ Audience is technical. Use existing posts as canonical reference for voice.
 
 - Just because something is there already it doesn't mean it was extremely well thought-out. Think critically and question assumptions
 - Start with proposing the simplest option (low effort, high impact) and we can discuss adding complexity incrementally from there
-- Do not use comments when code is self-explanatory. Comments should generally only be used to remember counter-intuitive decisions
+- Default to not using comments. Only use comments when code is not self-explanatory or it's important to remember a counter-intuitive decision. If a comment is necessary, it should be as concise as possible.
 
 ## Getting a branch ready for PR
 
-I will test the changes locally using `make serve` and do the git operations.
+I will test the changes locally using `make serve` and do the git operations. Don't try to verify UI changes yourself (playwright, etc), just say when changes are ready for me to test.
 
 Make sure we run through this checklist before merging:
 - **Libraries** - `brew update` and `brew upgrade` to make sure everything is on the latest version. If applicable:

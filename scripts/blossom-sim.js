@@ -21,8 +21,8 @@ const args = process.argv.slice(2);
 const days = parseInt(args.find(a => /^\d+$/.test(a)) || '365', 10);
 const showIdx = args.indexOf('--show');
 const show = showIdx >= 0 ? parseInt(args[showIdx + 1], 10) : 0;
-// Optional generator overrides, so we can A/B difficulty/overlap tuning without
-// editing blossom-gen.js. Any omitted flag falls back to the generator default.
+// Optional generator overrides for A/B tuning. Any omitted flag falls back to
+// the generator default.
 const flag = (name, parse) => {
   const i = args.indexOf(name);
   return i >= 0 ? parse(args[i + 1]) : undefined;
@@ -80,10 +80,9 @@ for (let i = 0; i < days; i++) {
     letters += w.length;
     if (/(.)\1/.test(w)) hasDouble = true;
   }
-  // Tiles a word reused mid-chain beyond the mandatory shared joint between
-  // consecutive words. This is the overlap the weighting is trying to grow:
-  // higher = a more interleaved, compact blossom; ~0 = words wrapping the
-  // outside on fresh tiles.
+  // Tiles reused mid-chain beyond the mandatory joint between consecutive words.
+  // Higher = a more interleaved, compact blossom; ~0 = words wrapping the rim on
+  // fresh tiles.
   const joints = b.chain.length - 1;
   const extraReuse = letters - joints - b.totalTiles;
   reuseCounts[extraReuse] = (reuseCounts[extraReuse] || 0) + 1;
