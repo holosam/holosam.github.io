@@ -3,7 +3,9 @@
 <head>
   {{ partial "docs/html-head" . }}
   {{ partial "docs/inject/head" . }}
-  <link rel="stylesheet" href="/css/games.css">
+  {{- /* Fingerprinted like the game scripts, so CSS changes bust caches too. */ -}}
+  {{- $css := resources.Get "css/games.css" | minify | fingerprint }}
+  <link rel="stylesheet" href="{{ $css.RelPermalink }}" integrity="{{ $css.Data.Integrity }}">
 </head>
 <body class="game-body">
   <main class="game-main">

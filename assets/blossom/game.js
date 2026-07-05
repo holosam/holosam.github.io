@@ -107,17 +107,42 @@
     } catch {}
   }
 
-  // Cross-day records, not date-scoped: just the win streak (word/tile bests are
-  // per-board, in the daily `state`).
+  // Cross-day records, not date-scoped: streak plus lifetime stats (word/tile
+  // bests are per-board, in the daily `state`). `dist` buckets each day's best
+  // result against the board's word target; `lastBucket` remembers which bucket
+  // today's win landed in so a same-day improvement can move it.
   const RECORDS_KEY = "blossom-records-v2";
   function loadRecords() {
     const defaults = {
       streak: 0,
       lastWinKey: null,
+      wins: 0,
+      bestStreak: 0,
+      preStatsWins: 0,
+      lastBucket: null,
+      dist: { under: 0, on: 0, over: 0 },
+      bestWordLen: 0,
     };
     try {
       const r = JSON.parse(localStorage.getItem(RECORDS_KEY) || "null");
-      if (r && typeof r === "object") return { ...defaults, ...r };
+      if (r && typeof r === "object") {
+        const merged = {
+          ...defaults,
+          ...r,
+          dist: { ...defaults.dist, ...r.dist },
+        };
+        // Stats shipped after streaks did. Credit an existing streak as wins so
+        // a long-time player doesn't open the stats page to a zero. Their
+        // per-day scores are gone, so the distribution stays empty and the
+        // stats modal footnotes the difference. Recomputed (identically) on
+        // every load until the first saveRecords persists `wins`.
+        if (r.wins === undefined && merged.streak > 0) {
+          merged.wins = merged.streak;
+          merged.bestStreak = merged.streak;
+          merged.preStatsWins = merged.streak;
+        }
+        return merged;
+      }
     } catch {}
     return { ...defaults };
   }
@@ -132,20 +157,45 @@
       localStorage.setItem(RECORDS_KEY, JSON.stringify(records));
     } catch {}
   }
+  function bucketFor(words) {
+    if (words < BOARD.targetWords) return "under";
+    if (words === BOARD.targetWords) return "on";
+    return "over";
+  }
   function updateRecords(tilesUsed) {
     if (tilesUsed > state.maxTiles) state.maxTiles = tilesUsed;
-    if (state.done && tilesUsed >= BOARD.totalTiles) {
-      if (state.bestWords === null || state.words.length < state.bestWords) {
-        state.bestWords = state.words.length;
-      }
-      // Guard on lastWinKey so re-winning the same day can't double-count the
-      // streak.
-      if (records.lastWinKey !== TODAY_KEY) {
-        records.streak =
-          records.lastWinKey === prevDateKey(TODAY_KEY)
-            ? records.streak + 1
-            : 1;
-        records.lastWinKey = TODAY_KEY;
+    // Every submitted word counts toward the longest-word record, not just
+    // words on winning boards.
+    const lastWord = state.words[state.words.length - 1];
+    if (lastWord && lastWord.word.length > records.bestWordLen) {
+      records.bestWordLen = lastWord.word.length;
+      saveRecords();
+    }
+    if (!state.done || tilesUsed < BOARD.totalTiles) return;
+    const improved =
+      state.bestWords === null || state.words.length < state.bestWords;
+    if (improved) state.bestWords = state.words.length;
+    // Guard on lastWinKey so re-winning the same day can't double-count the
+    // streak, wins, or distribution.
+    if (records.lastWinKey !== TODAY_KEY) {
+      records.streak =
+        records.lastWinKey === prevDateKey(TODAY_KEY) ? records.streak + 1 : 1;
+      records.bestStreak = Math.max(records.bestStreak, records.streak);
+      records.lastWinKey = TODAY_KEY;
+      records.wins += 1;
+      records.lastBucket = bucketFor(state.bestWords);
+      records.dist[records.lastBucket] += 1;
+      saveRecords();
+    } else if (improved) {
+      // A redo can beat the earlier win; move today's result to its new
+      // bucket rather than counting the day twice.
+      const bucket = bucketFor(state.bestWords);
+      if (bucket !== records.lastBucket) {
+        if (records.dist[records.lastBucket] > 0) {
+          records.dist[records.lastBucket] -= 1;
+        }
+        records.dist[bucket] += 1;
+        records.lastBucket = bucket;
         saveRecords();
       }
     }
@@ -170,6 +220,13 @@
               <path d="M12 3v13"/>
               <path d="M6 9l6-6 6 6"/>
               <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
+            </svg>
+          </button>
+          <button class="bl-help bl-icon-btn" id="bl-stats-btn" aria-label="Stats" title="Stats">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="18" y1="20" x2="18" y2="10"/>
+              <line x1="12" y1="20" x2="12" y2="4"/>
+              <line x1="6" y1="20" x2="6" y2="14"/>
             </svg>
           </button>
           <button class="bl-help bl-icon-btn" id="bl-help-btn" aria-label="How to play" title="How to play">
@@ -230,6 +287,15 @@
           </ol>
           <p class="bl-modal-foot">The board resets at midnight, so come back tomorrow to play a new one!</p>
           <p class="bl-modal-foot"><a href="/posts/blossom/">Read the story behind Blossom</a>.</p>
+        </div>
+      </div>
+      <div class="bl-modal" id="bl-stats" hidden>
+        <div class="bl-modal-card" role="dialog" aria-modal="true" aria-labelledby="bl-stats-title">
+          <button class="bl-modal-close" id="bl-stats-close" aria-label="Close">×</button>
+          <h2 id="bl-stats-title">Stats</h2>
+          <div class="bl-stat-tiles" id="bl-stat-tiles"></div>
+          <div class="bl-stat-bars" id="bl-stat-bars"></div>
+          <div class="bl-stats-badges" id="bl-stats-badges"></div>
         </div>
       </div>
       <div class="bl-modal" id="bl-confirm" hidden>
@@ -964,6 +1030,96 @@
   });
   confirmModal.addEventListener("click", (e) => {
     if (e.target === confirmModal) closeModal(confirmModal);
+  });
+
+  // ─── Stats modal ───────────────────────────────────────────────────────────
+  // Buckets are labeled with the win banner's praise words, not golf terms.
+  // The under-goal row stays a locked mystery until first achieved.
+  function renderStats() {
+    // `streak` in storage only resets on the next win, so it reads stale-high
+    // after a missed day — zero it for display if the chain is already broken.
+    const alive =
+      records.lastWinKey === TODAY_KEY ||
+      records.lastWinKey === prevDateKey(TODAY_KEY);
+    document.getElementById("bl-stat-tiles").innerHTML = [
+      [records.wins, "Wins"],
+      [alive ? records.streak : 0, "Streak"],
+      [records.bestStreak, "Best streak"],
+    ]
+      .map(
+        ([n, label]) =>
+          `<div class="bl-stat"><div class="bl-stat-num">${n}</div><div class="bl-stat-label">${label}</div></div>`,
+      )
+      .join("");
+
+    const max = Math.max(
+      1,
+      records.dist.under,
+      records.dist.on,
+      records.dist.over,
+    );
+    const bar = (label, emoji, n, title) =>
+      `<span class="bl-bar-label" title="${title}">${label} ${emoji}</span>` +
+      `<span class="bl-bar-track">${
+        n > 0
+          ? `<span class="bl-bar-fill" style="width:max(${Math.round((n / max) * 100)}%, 6px)"></span>`
+          : ""
+      }</span>` +
+      `<span class="bl-bar-count${n === 0 ? " bl-bar-count--zero" : ""}">${n}</span>`;
+    document.getElementById("bl-stat-bars").innerHTML =
+      (records.dist.under > 0
+        ? bar("Incredible", "🏆", records.dist.under, "Beat the word goal")
+        : `<span class="bl-bar-label bl-bar-locked" title="Still a mystery…">??? 🔒</span>` +
+          `<span class="bl-bar-track"></span><span class="bl-bar-count"></span>`) +
+      bar("Amazing", "🌸", records.dist.on, "Hit the word goal exactly") +
+      bar("Nice", "🌿", records.dist.over, "Finished over the word goal");
+
+    // Badges are earned once and never lost: bestStreak never decreases, and
+    // Early Bloomer only seeds at the stats migration, so it can't be earned
+    // later — a founders' badge.
+    const badges = [
+      [
+        records.preStatsWins > 0,
+        "🌱",
+        "Early Bloomer",
+        "Had a win before stats existed",
+      ],
+      [records.bestStreak >= 7, "🪴", "Green Thumb", "Kept a 7-day streak"],
+      [records.bestStreak >= 30, "🌻", "Perennial", "Kept a 30-day streak"],
+      [records.wins >= 100, "💐", "Bouquet", "Won 100 boards"],
+      [
+        records.dist.under >= 10,
+        "🌺",
+        "Rare Bloom",
+        "Beat the word goal 10 times",
+      ],
+      [
+        records.bestWordLen >= 9,
+        "🦋",
+        "Pollinator",
+        "Played a 9+ letter word",
+      ],
+    ];
+    document.getElementById("bl-stats-badges").innerHTML = badges
+      .filter(([earned]) => earned)
+      .map(
+        ([, emoji, name, desc]) =>
+          `<span class="bl-badge-pill">${emoji} <strong>${name}</strong> · ${desc}</span>`,
+      )
+      .join("");
+  }
+
+  const statsModal = document.getElementById("bl-stats");
+  wireModalKeys(statsModal);
+  document.getElementById("bl-stats-btn").addEventListener("click", () => {
+    renderStats();
+    openModal(statsModal);
+  });
+  document
+    .getElementById("bl-stats-close")
+    .addEventListener("click", () => closeModal(statsModal));
+  statsModal.addEventListener("click", (e) => {
+    if (e.target === statsModal) closeModal(statsModal);
   });
 
   const modal = document.getElementById("bl-modal");

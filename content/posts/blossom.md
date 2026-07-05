@@ -74,6 +74,7 @@ May 31st - prune dictionary, minor accessibility improvements
 Jun  3rd - refresh on stale state, improved accessibility via keyboard
 Jun 19th - tuned letter placement and frequency bias (Alec's first PRs!)
 Jul  3rd - looping tutorial, playability QoL tweaks
+Jul  5th - stats page with scores and badges
 ```
 
 Thanks to everyone who's been giving me feedback! Especially my family for helping me make it playable, and my friends for the encouragement.

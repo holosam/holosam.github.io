@@ -18,7 +18,7 @@ Although the author's real name is used on the site, the main brand should stay 
 **Conventions**
 - Length - a few hundred words with little padding
 - Footnotes (Hugo native `[^1]` syntax) - for tangents, citations, and caveats
-- External references - prefer primary sources linked inline
+- External references - prefer primary sources linked inline, and should cite 2-3+ sources to show it's not just "I thought really hard about this"
 
 **Editorial reviews**
 Looking for honest critiques. Flag by line number:
