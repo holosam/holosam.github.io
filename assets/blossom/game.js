@@ -1074,9 +1074,6 @@
       bar("Amazing", "🌸", records.dist.on, "Hit the word goal exactly") +
       bar("Nice", "🌿", records.dist.over, "Finished over the word goal");
 
-    // Badges are earned once and never lost: bestStreak never decreases, and
-    // Early Bloomer only seeds at the stats migration, so it can't be earned
-    // later — a founders' badge.
     const badges = [
       [
         records.preStatsWins > 0,
@@ -1093,12 +1090,7 @@
         "Rare Bloom",
         "Beat the word goal 10 times",
       ],
-      [
-        records.bestWordLen >= 9,
-        "🦋",
-        "Pollinator",
-        "Played a 9+ letter word",
-      ],
+      [records.bestWordLen >= 9, "🦋", "Pollinator", "Played a 9+ letter word"],
     ];
     document.getElementById("bl-stats-badges").innerHTML = badges
       .filter(([earned]) => earned)
