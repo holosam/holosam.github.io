@@ -1,13 +1,15 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="{{ default .Site.Language.Name .Site.Language.Locale }}">
-<head>
-  {{ partial "docs/html-head" . }}
-  {{ partial "docs/inject/head" . }}
-  <link rel="stylesheet" href="/css/games.css">
-</head>
-<body class="game-body">
-  <main class="game-main">
-    {{ block "main" . }}{{ end }}
-  </main>
-</body>
+    <head>
+        {{ partial "docs/html-head" . }} {{ partial "docs/inject/head" . }} {{-
+        $css := resources.Get "css/games.css" | minify | fingerprint }}
+        <link
+            rel="stylesheet"
+            href="{{ $css.RelPermalink }}"
+            integrity="{{ $css.Data.Integrity }}"
+        />
+    </head>
+    <body class="game-body">
+        <main class="game-main">{{ block "main" . }}{{ end }}</main>
+    </body>
 </html>

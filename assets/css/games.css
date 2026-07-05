@@ -581,6 +581,97 @@ body.game-body {
     opacity: 1;
 }
 
+/* ─── Stats modal ──────────────────────────────────────────────────────────
+   Single-hue bars, bordered like tiles so they read on any background without
+   leaning on fill colour alone. Counts are direct-labeled; identity lives in
+   the praise-word labels, so no legend or hover layer is needed. */
+.bl-stat-tiles {
+    display: flex;
+    justify-content: center;
+    gap: 2.25rem;
+    margin-bottom: 1.1rem;
+    text-align: center;
+}
+
+.bl-stat-num {
+    font-size: 1.9rem;
+    font-weight: 700;
+    line-height: 1.15;
+}
+
+.bl-stat-label {
+    font-size: 0.78rem;
+    color: var(--bl-text-soft);
+}
+
+.bl-stats-badges {
+    margin-top: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.8rem;
+}
+
+.bl-stats-badges:empty {
+    display: none;
+}
+
+.bl-badge-pill {
+    display: inline-block;
+    padding: 0.3rem 0.8rem;
+    border: 1px solid var(--bl-text-soft);
+    border-radius: 999px;
+    background: var(--bl-bg-accent);
+    color: var(--bl-text-soft);
+}
+
+.bl-badge-pill strong {
+    color: inherit;
+    font-weight: 700;
+}
+
+/* One grid for all rows so the label column stays aligned across them. */
+.bl-stat-bars {
+    display: grid;
+    grid-template-columns: max-content 1fr 2ch;
+    gap: 0.55rem 0.6rem;
+    align-items: center;
+    font-size: 0.92rem;
+}
+
+.bl-bar-label {
+    font-weight: 600;
+}
+
+.bl-bar-locked {
+    color: var(--bl-text-soft);
+}
+
+.bl-bar-track {
+    height: 1.05rem;
+    border-radius: 4px;
+    background: var(--bl-bg-accent);
+}
+
+.bl-bar-fill {
+    display: block;
+    height: 100%;
+    box-sizing: border-box;
+    background: var(--bl-sel);
+    border: 1px solid var(--bl-stroke);
+    border-radius: 4px;
+}
+
+.bl-bar-count {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.bl-bar-count--zero {
+    color: var(--bl-text-soft);
+}
+
 @media (prefers-color-scheme: dark) {
     .bl-container {
         /* Dark theme — warm cream petals against deep teal-leaf background.
