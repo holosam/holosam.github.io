@@ -1033,8 +1033,9 @@
   });
 
   // ─── Stats modal ───────────────────────────────────────────────────────────
-  // Buckets are labeled with the win banner's praise words, not golf terms.
-  // The under-goal row stays a locked mystery until first achieved.
+  // Buckets are labeled with the win banner's praise words, not golf terms,
+  // and deliberately never explained (no tooltips/subtext): discovering what
+  // earns each tier — and the locked under-goal row — is part of the game.
   function renderStats() {
     // `streak` in storage only resets on the next win, so it reads stale-high
     // after a missed day — zero it for display if the chain is already broken.
