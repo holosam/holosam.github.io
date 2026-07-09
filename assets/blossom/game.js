@@ -1058,8 +1058,8 @@
       records.dist.on,
       records.dist.over,
     );
-    const bar = (label, emoji, n, title) =>
-      `<span class="bl-bar-label" title="${title}">${label} ${emoji}</span>` +
+    const bar = (label, emoji, n) =>
+      `<span class="bl-bar-label">${label} ${emoji}</span>` +
       `<span class="bl-bar-track">${
         n > 0
           ? `<span class="bl-bar-fill" style="width:max(${Math.round((n / max) * 100)}%, 6px)"></span>`
@@ -1068,11 +1068,11 @@
       `<span class="bl-bar-count${n === 0 ? " bl-bar-count--zero" : ""}">${n}</span>`;
     document.getElementById("bl-stat-bars").innerHTML =
       (records.dist.under > 0
-        ? bar("Incredible", "🏆", records.dist.under, "Beat the word goal")
-        : `<span class="bl-bar-label bl-bar-locked" title="Still a mystery…">??? 🔒</span>` +
+        ? bar("Incredible", "🏆", records.dist.under)
+        : `<span class="bl-bar-label bl-bar-locked">??? 🔒</span>` +
           `<span class="bl-bar-track"></span><span class="bl-bar-count"></span>`) +
-      bar("Amazing", "🌸", records.dist.on, "Hit the word goal exactly") +
-      bar("Nice", "🌿", records.dist.over, "Finished over the word goal");
+      bar("Amazing", "🌸", records.dist.on) +
+      bar("Nice", "🌿", records.dist.over);
 
     const badges = [
       [
