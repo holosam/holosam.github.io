@@ -4,33 +4,6 @@
 
     <h2 class="recent-posts-heading">Recent Posts</h2>
 
-    {{ $posts := where .Site.RegularPages "Section" "posts" }}
-    {{ $paginator := .Paginate $posts 10 }}
-
-    <div class="recent-posts-list">
-      {{ range $paginator.Pages }}
-        <div class="recent-posts-item">
-          <div>
-            <a href="{{ .RelPermalink }}">{{ .Title }}</a>
-            {{ with .Description }}
-              <p class="recent-posts-description">{{ . }}</p>
-            {{ end }}
-          </div>
-          <span class="recent-posts-date">{{ .Date.Format "Jan 2, 2006" }}</span>
-        </div>
-      {{ end }}
-    </div>
-
-    {{ if gt $paginator.TotalPages 1 }}
-      <nav class="pagination">
-        {{ if $paginator.HasPrev }}
-          <a href="{{ $paginator.Prev.URL }}">← Newer</a>
-        {{ end }}
-        {{ if $paginator.HasNext }}
-          <a href="{{ $paginator.Next.URL }}">Older →</a>
-        {{ end }}
-      </nav>
-    {{ end }}
-
+    {{ partial "post-list.html" (.Paginate (where .Site.RegularPages "Section" "posts") 5) }}
   </article>
 {{ end }}
