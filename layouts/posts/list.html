@@ -1,6 +1,6 @@
 {{ define "main" }}
   <article>
-    <h2 class="recent-posts-heading">Posts tagged "{{ .Title }}"</h2>
+    <h2 class="recent-posts-heading">{{ .Title }}</h2>
 
     {{ partial "post-list.html" (.Paginate .Pages.ByDate.Reverse 10) }}
   </article>

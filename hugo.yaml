@@ -26,9 +26,12 @@ markup:
 
 menu:
   before:
-  - name: "Posts"
+  - name: "All Posts"
     pageRef: "/posts"
     weight: 1
+  - name: "Blossom"
+    pageRef: "/games/blossom"
+    weight: 2
   after:
   - name: "Github ↗"
     url: "https://github.com/holosam"
@@ -42,4 +45,3 @@ menu:
 
 taxonomies:
   tag: tags
-  series: series

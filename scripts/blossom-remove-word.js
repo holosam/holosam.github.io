@@ -3,13 +3,12 @@
 // word list — an offensive term we missed, a proper noun that slipped through:
 //
 //   node scripts/blossom-remove-word.js <word> [word2 ...]
-//   make blossom-remove-word word="foo bar"
 //
-// Deletes the word (case-insensitive, whole line) from both word_bank.txt and
-// scowl-60.txt (gitignored — skipped with a warning if absent), then rebuilds
-// words.js. We edit the *sources* rather than keep a blocklist, so no standing
-// list of pulled slurs lives in the repo; a word must leave BOTH banks to leave
-// validation, since the build merges them.
+// Deletes the word (case-insensitive, whole line) from word_bank.txt,
+// extra_words.txt, and scowl-60.txt, then rebuilds words.js. We edit the
+// *sources* rather than keep a blocklist, so no standing list of pulled slurs
+// lives in the repo; a word must leave ALL the banks to leave validation,
+// since the build merges them.
 
 const fs = require('fs');
 const path = require('path');
@@ -17,6 +16,7 @@ const { execFileSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
 const WORD_BANK_PATH = path.join(ROOT, 'assets/blossom/word_bank.txt');
+const EXTRA_PATH = path.join(ROOT, 'assets/blossom/extra_words.txt');
 const SCOWL_PATH = path.join(ROOT, 'assets/blossom/scowl-60.txt');
 const BUILD_SCRIPT = path.join(__dirname, 'blossom-build-words.js');
 
@@ -51,6 +51,7 @@ function removeFrom(file, label) {
 console.log(`Removing from word banks: ${words.join(', ')}`);
 const removed =
   removeFrom(WORD_BANK_PATH, 'word_bank.txt') +
+  removeFrom(EXTRA_PATH, 'extra_words.txt') +
   removeFrom(SCOWL_PATH, 'scowl-60.txt ');
 
 if (removed === 0) {

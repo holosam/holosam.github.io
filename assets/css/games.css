@@ -212,6 +212,8 @@ body.game-body {
     -webkit-tap-highlight-color: transparent;
     /* overflow visible so lifted petals + shadows aren't clipped */
     overflow: visible;
+    /* drag-to-select: a touch drag on the board selects tiles, not scrolls */
+    touch-action: none;
 }
 
 .bl-hex polygon {
@@ -457,6 +459,10 @@ body.game-body {
     width: 100%;
     position: relative;
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+    /* The how-to demo makes the card tall; scroll rather than overflow on
+       short viewports. */
+    max-height: 100%;
+    overflow-y: auto;
 }
 
 .bl-modal-card h2 {
@@ -510,6 +516,160 @@ body.game-body {
     display: flex;
     gap: 0.75rem;
     justify-content: flex-end;
+}
+
+/* ─── How-to demo ──────────────────────────────────────────────────────────
+   Mini board in the help modal (see runDemo in game.js). Tiles reuse the
+   .bl-hex state classes above so the demo stays in sync with the game's look. */
+.bl-demo {
+    background: var(--bl-bg-accent);
+    border-radius: 8px;
+    padding: 0.6rem 0.5rem 0.5rem;
+    margin: 0 0 0.9rem;
+}
+
+.bl-demo-words {
+    text-align: center;
+    min-height: 1.35rem;
+    font-size: 0.9rem;
+}
+
+.bl-demo-words .bl-word-chip {
+    font-size: 0.9rem;
+}
+
+.bl-demo-words .bl-word-sep {
+    margin: 0 0.3rem;
+}
+
+.bl-demo-current {
+    min-height: 1.6rem;
+    text-align: center;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--bl-active);
+}
+
+.bl-demo-grid {
+    display: block;
+    width: min(190px, 65%);
+    margin: 0.25rem auto 0;
+    overflow: visible;
+    user-select: none;
+    pointer-events: none;
+}
+
+.bl-demo-caption {
+    min-height: 2.8em;
+    margin: 0.6rem 0.25rem 0;
+    text-align: center;
+    font-size: 0.88rem;
+    line-height: 1.35;
+}
+
+.bl-demo-finger {
+    font-size: 30px;
+    opacity: 0;
+    transition:
+        transform 0.5s ease,
+        opacity 0.2s;
+}
+
+.bl-demo-finger--on {
+    opacity: 1;
+}
+
+/* ─── Stats modal ──────────────────────────────────────────────────────────
+   Single-hue bars, bordered like tiles so they read on any background without
+   leaning on fill colour alone. Counts are direct-labeled; identity lives in
+   the praise-word labels, so no legend or hover layer is needed. */
+.bl-stat-tiles {
+    display: flex;
+    justify-content: center;
+    gap: 2.25rem;
+    margin-bottom: 1.1rem;
+    text-align: center;
+}
+
+.bl-stat-num {
+    font-size: 1.9rem;
+    font-weight: 700;
+    line-height: 1.15;
+}
+
+.bl-stat-label {
+    font-size: 0.78rem;
+    color: var(--bl-text-soft);
+}
+
+.bl-stats-badges {
+    margin-top: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.8rem;
+}
+
+.bl-stats-badges:empty {
+    display: none;
+}
+
+.bl-badge-pill {
+    display: inline-block;
+    padding: 0.3rem 0.8rem;
+    border: 1px solid var(--bl-text-soft);
+    border-radius: 999px;
+    background: var(--bl-bg-accent);
+    color: var(--bl-text-soft);
+}
+
+.bl-badge-pill strong {
+    color: inherit;
+    font-weight: 700;
+}
+
+/* One grid for all rows so the label column stays aligned across them. */
+.bl-stat-bars {
+    display: grid;
+    grid-template-columns: max-content 1fr 2ch;
+    gap: 0.55rem 0.6rem;
+    align-items: center;
+    font-size: 0.92rem;
+}
+
+.bl-bar-label {
+    font-weight: 600;
+}
+
+.bl-bar-locked {
+    color: var(--bl-text-soft);
+}
+
+.bl-bar-track {
+    height: 1.05rem;
+    border-radius: 4px;
+    background: var(--bl-bg-accent);
+}
+
+.bl-bar-fill {
+    display: block;
+    height: 100%;
+    box-sizing: border-box;
+    background: var(--bl-sel);
+    border: 1px solid var(--bl-stroke);
+    border-radius: 4px;
+}
+
+.bl-bar-count {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.bl-bar-count--zero {
+    color: var(--bl-text-soft);
 }
 
 @media (prefers-color-scheme: dark) {

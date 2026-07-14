@@ -1,0 +1,24 @@
+<div class="recent-posts-list">
+  {{ range .Pages }}
+    <div class="recent-posts-item">
+      <div>
+        <a href="{{ .RelPermalink }}">{{ .Title }}</a>
+        {{ with .Description }}
+          <p class="recent-posts-description">{{ . }}</p>
+        {{ end }}
+      </div>
+      <span class="recent-posts-date">{{ .Date.Format "Jan 2, 2006" }}</span>
+    </div>
+  {{ end }}
+</div>
+
+{{ if gt .TotalPages 1 }}
+  <nav class="pagination">
+    {{ if .HasPrev }}
+      <a href="{{ .Prev.URL }}">← Newer</a>
+    {{ end }}
+    {{ if .HasNext }}
+      <a href="{{ .Next.URL }}">Older →</a>
+    {{ end }}
+  </nav>
+{{ end }}
