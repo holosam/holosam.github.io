@@ -120,6 +120,12 @@
   font-weight: 600;
 }
 
+/* Theme default (--font-size-smallest, 12px) is too small to read;
+   match the left menu's size instead. */
+.book-toc {
+  font-size: var(--font-size-smaller);
+}
+
 .pagination {
   display: flex;
   justify-content: center;

@@ -3,6 +3,7 @@ title: "Worldforge"
 date: 2026-04-26T20:56:05-07:00
 description: "Lore tracker for sci-fi worldbuilding."
 tags: ["projects"]
+featured: true
 ---
 
 I was reading the Red Rising series and imagining the storyboard hell that authors of epic sci-fi and fantasy series must have.

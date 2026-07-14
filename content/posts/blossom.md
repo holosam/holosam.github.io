@@ -3,6 +3,7 @@ title: "Blossom"
 date: 2026-05-17T13:42:12-07:00
 description: "A daily puzzle game about linking words."
 tags: ["projects"]
+featured: true
 image: "images/blossom.webp"
 ---
 
