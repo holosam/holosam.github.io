@@ -3,6 +3,7 @@ title: "NEAT Topology Crossover via \"Conglomerate\" Network"
 date: 2025-03-04T08:00:00-07:00
 description: "Proposing a new method for gene crossover."
 tags: ["projects"]
+featured: true
 image: "images/mario_neat_screenshot.webp"
 aliases:
   - /posts/neuro_evo/

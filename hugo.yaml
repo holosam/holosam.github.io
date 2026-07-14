@@ -26,7 +26,7 @@ markup:
 
 menu:
   before:
-  - name: "Posts"
+  - name: "All Posts"
     pageRef: "/posts"
     weight: 1
   - name: "Blossom"

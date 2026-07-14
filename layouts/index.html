@@ -2,8 +2,8 @@
   <article>
     {{ .Content }}
 
-    <h2 class="recent-posts-heading">Recent Posts</h2>
+    <h2 class="recent-posts-heading">Featured Posts</h2>
 
-    {{ partial "post-list.html" (.Paginate (where .Site.RegularPages "Section" "posts") 5) }}
+    {{ partial "post-list.html" (.Paginate (where (where .Site.RegularPages "Section" "posts") "Params.featured" true) 5) }}
   </article>
 {{ end }}
