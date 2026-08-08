@@ -72,6 +72,11 @@ for (const line of raw) {
   valid.add(w);
 }
 
+// Snapshot the SCOWL-only set before the gen bank and extra_words are merged
+// in below — the drift check at the bottom must measure the source dictionary
+// alone, not our own word lists.
+const scowlOnly = new Set(valid);
+
 const gen = fs.readFileSync(WORD_BANK_PATH, 'utf8')
   .split('\n')
   .map(s => s.trim().toLowerCase())
@@ -95,19 +100,6 @@ if (fs.existsSync(EXTRA_PATH)) {
 const validSorted = [...valid].sort();
 const genSorted = [...genSet].sort();
 
-// First-letter counts across the full dictionary, lengths matched to the gen
-// pool's range so it reflects the same word shapes. This is the *target* shape
-// for a chain's start letters — a plain language fact about English, measured
-// from the dictionary we already ship rather than hardcoded so it can't drift.
-// gen.js divides it by the gen pool's own supply of word-ending letters to get
-// its correction factor; deriving the target from the gen pool instead (what it
-// used to do) just steers toward whatever skew the curation introduced.
-const letterFreqWords = validSorted.filter(w => w.length >= GEN_MIN_LEN && w.length <= GEN_MAX_LEN);
-const firstCount = {};
-for (const w of letterFreqWords) {
-  firstCount[w[0]] = (firstCount[w[0]] || 0) + 1;
-}
-
 const out = `// Word lists for Blossom. GENERATED — do not edit by hand.
 // Regenerate with: node scripts/blossom-build-words.js
 //   BLOSSOM_WORDS      = validation pool (SCOWL ESDB size 60, US English,
@@ -115,16 +107,12 @@ const out = `// Word lists for Blossom. GENERATED — do not edit by hand.
 //                        and extra_words.txt).
 //   BLOSSOM_GEN_WORDS  = chain-generation pool (curated word_bank.txt,
 //                        lengths ${GEN_MIN_LEN}-${GEN_MAX_LEN}).
-//   BLOSSOM_LETTER_FREQ = first-letter counts across BLOSSOM_WORDS (lengths
-//                        ${GEN_MIN_LEN}-${GEN_MAX_LEN}) — real English first-letter frequency,
-//                        the target shape for gen.js's chain-building correction.
 // See scripts/blossom-build-words.js for source, license, and trade-offs.
 // Each list ships as one newline-joined string, split at load — smaller on the
 // wire and much cheaper for mobile JS engines to parse than a ~${Math.round(validSorted.length / 1000)}k-element
 // array literal.
 window.BLOSSOM_WORDS = ${JSON.stringify(validSorted.join('\n'))}.split("\\n");
 window.BLOSSOM_GEN_WORDS = ${JSON.stringify(genSorted.join('\n'))}.split("\\n");
-window.BLOSSOM_LETTER_FREQ = { first: ${JSON.stringify(firstCount)} };
 `;
 
 fs.writeFileSync(OUT_PATH, out);
@@ -136,3 +124,31 @@ const byLen = {};
 for (const w of validSorted) byLen[w.length] = (byLen[w.length] || 0) + 1;
 console.log('  validation length distribution:');
 for (const k of Object.keys(byLen).sort((a, b) => a - b)) console.log(`    ${k}: ${byLen[k]}`);
+
+// Drift check on gen.js's ENGLISH_FIRST_LETTER_PCT. That table is hardcoded so
+// the validation list can't leak into board generation, but it was measured
+// from THIS source list — so if the SCOWL size is ever bumped, the frozen
+// numbers may no longer describe the dictionary they claim to. Report the gap;
+// don't fix it automatically. Editing the table regenerates every future board,
+// which is a deliberate call, not a build step.
+const refWords = [...scowlOnly].filter(w => w.length >= GEN_MIN_LEN && w.length <= GEN_MAX_LEN);
+const freshPct = {};
+for (const w of refWords) freshPct[w[0]] = (freshPct[w[0]] || 0) + 1;
+for (const l of Object.keys(freshPct)) freshPct[l] = (100 * freshPct[l]) / refWords.length;
+
+const genSrc = fs.readFileSync(path.join(ROOT, 'assets/blossom/gen.js'), 'utf8');
+const frozenBlock = genSrc.match(/ENGLISH_FIRST_LETTER_PCT = \{([^}]*)\}/);
+if (!frozenBlock) {
+  console.log('\n  NOTE: could not find ENGLISH_FIRST_LETTER_PCT in gen.js to drift-check.');
+} else {
+  const frozen = {};
+  for (const [, l, v] of frozenBlock[1].matchAll(/([a-z]):\s*([\d.]+)/g)) frozen[l] = parseFloat(v);
+  const drifted = Object.keys(freshPct)
+    .filter(l => Math.abs((frozen[l] ?? 0) - freshPct[l]) >= 0.05)
+    .map(l => `${l}: frozen ${(frozen[l] ?? 0).toFixed(2)} vs source ${freshPct[l].toFixed(2)}`);
+  console.log(`\n  first-letter table (gen.js): ${drifted.length ? 'DRIFTED' : 'matches this source list'}`);
+  for (const d of drifted) console.log(`    ${d}`);
+  if (drifted.length) {
+    console.log('    Update ENGLISH_FIRST_LETTER_PCT only if you intend every future board to change.');
+  }
+}

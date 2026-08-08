@@ -86,6 +86,38 @@
     return out;
   }
 
+  // How often each letter starts an English word, in percent. This is the
+  // target shape for a chain's start letters (see corrFactor below).
+  //
+  // Derived from SCOWL/ESDB size 60 (US English, max_variant=0), lowercase
+  // entries only, lengths 4-8 — the same shape as the generation pool. N =
+  // 40,769 words. It is TYPE frequency (each dictionary word counted once),
+  // not token frequency from running text, because Blossom's answers are
+  // dictionary words, not prose. Sums to 99.98 after rounding; the code
+  // normalizes, so exact totals don't matter.
+  //
+  // Reproduce with the size-60 list that scripts/blossom-build-words.js
+  // fetches:
+  //   awk 'f && /^[a-z]+$/ && length>=4 && length<=8 {c[substr($0,1,1)]++; n++}
+  //        /^---$/{f=1} END{for (l in c) printf "%s %.2f\n", l, 100*c[l]/n}' \
+  //     assets/blossom/scowl-60.txt | sort
+  //
+  // HARDCODED ON PURPOSE. This used to be computed at build time from
+  // BLOSSOM_WORDS, which meant the validation list leaked into generation:
+  // adding one validate-only word (scripts/blossom-add-word.js) or curating
+  // any out would shift these counts, change every corrFactor, and silently
+  // regenerate every future board from the same seed. Board output must
+  // depend only on the seed and the generation pool. English's letter
+  // frequencies are a fact about the language, not about our word lists, so
+  // freezing them here is also the more honest model. Only change these
+  // numbers deliberately, knowing every future board changes with them.
+  const ENGLISH_FIRST_LETTER_PCT = {
+    a: 4.75, b: 7.23, c: 8.91, d: 5.91, e: 3.25, f: 4.97, g: 4.05,
+    h: 3.85, i: 2.10, j: 1.24, k: 1.00, l: 3.77, m: 5.12, n: 1.90,
+    o: 2.14, p: 7.36, q: 0.53, r: 5.98, s: 12.52, t: 5.81, u: 1.80,
+    v: 1.59, w: 3.43, x: 0.08, y: 0.42, z: 0.28,
+  };
+
   function generateBoard(seed, genPool, options) {
     const opts = options || {};
     const targetTiles = opts.targetTiles || 21;
@@ -128,18 +160,16 @@
     //
     //   corrFactor[last letter] = target share / our pool's supply share
     //
-    // — the target being the start-letter distribution we want the chain to
-    // have (opts.letterFreq.first, real English, when given; else the gen
-    // pool's own first letters), and the supply being how often our pool
-    // actually offers a word ending in that letter. Both are normalized to
-    // shares so corrFactorCap means the same thing whichever target is used.
+    // — the target being real English's first-letter distribution (frozen in
+    // ENGLISH_FIRST_LETTER_PCT above; opts.letterFreq overrides it, for the
+    // metrics scripts), and the supply being how often our pool actually
+    // offers a word ending in that letter. Both are normalized to shares so
+    // corrFactorCap means the same thing whichever target is used.
     const poolLastCount = {};
-    const poolFirstCount = {};
     for (const w of genPool) {
-      poolFirstCount[w[0]] = (poolFirstCount[w[0]] || 0) + 1;
       poolLastCount[w[w.length - 1]] = (poolLastCount[w[w.length - 1]] || 0) + 1;
     }
-    const targetCount = (opts.letterFreq && opts.letterFreq.first) || poolFirstCount;
+    const targetCount = opts.letterFreq || ENGLISH_FIRST_LETTER_PCT;
     let targetTotal = 0, supplyTotal = 0;
     for (const l in targetCount) targetTotal += targetCount[l];
     for (const l in poolLastCount) supplyTotal += poolLastCount[l];

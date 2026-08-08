@@ -100,7 +100,7 @@ const allInter = {}, allIntra = {};
 
 process.stderr.write(`Generating ${N} boards…\n`);
 for (let i = 0; i < N; i++) {
-  const board = Gen.generateBoard(i >>> 0, pool, { letterFreq: window.BLOSSOM_LETTER_FREQ });
+  const board = Gen.generateBoard(i >>> 0, pool);
   const chain = board.chain;
 
   const totalLetters = chain.reduce((s, w) => s + w.length, 0);
