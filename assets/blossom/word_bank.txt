@@ -234,7 +234,6 @@ beauty
 because
 become
 bedroom
-beef
 beep
 beer
 before
@@ -279,7 +278,6 @@ blanket
 blew
 blind
 blitz
-blob
 block
 blood
 bloom
@@ -387,7 +385,6 @@ casino
 cast
 catch
 category
-catholic
 cause
 ceiling
 celebrate
@@ -787,7 +784,6 @@ driver
 drop
 drug
 drum
-dumb
 dump
 during
 dust
@@ -934,7 +930,6 @@ everyone
 everything
 everywhere
 evidence
-evil
 evolution
 evolve
 exact
@@ -1193,7 +1188,6 @@ graffiti
 grain
 grand
 grandma
-grandpa
 grant
 graphic
 grasp
@@ -1225,7 +1219,6 @@ guidance
 guide
 guideline
 guilty
-guinea
 guitar
 gulf
 guru
@@ -1249,7 +1242,6 @@ happy
 hard
 hardly
 hardware
-harm
 hate
 have
 head
@@ -1419,9 +1411,7 @@ item
 itself
 jacket
 jail
-java
 jazz
-jeep
 join
 joint
 joke
@@ -1454,8 +1444,6 @@ keyword
 kick
 kidney
 kids
-kill
-kimono
 kind
 kindness
 kinds
@@ -1601,7 +1589,6 @@ mall
 manage
 management
 manager
-manga
 mango
 manner
 many
@@ -1664,7 +1651,6 @@ milk
 million
 mind
 mine
-mini
 minimum
 minister
 minor
@@ -2013,7 +1999,6 @@ preference
 pregnancy
 pregnant
 premium
-prep
 prepare
 presence
 present
@@ -2078,7 +2063,6 @@ protein
 protest
 proud
 prove
-proverb
 provide
 provider
 province
@@ -2178,7 +2162,6 @@ regular
 regularly
 regulate
 regulation
-rehab
 reinforce
 reject
 relate
@@ -2275,7 +2258,6 @@ safe
 safety
 sake
 salad
-salami
 salary
 sale
 salt
@@ -2393,7 +2375,6 @@ shrug
 shut
 sick
 side
-sierra
 sigh
 sight
 sigma
@@ -2498,7 +2479,6 @@ spread
 spring
 square
 squeeze
-stab
 stability
 stable
 stadium
@@ -2881,7 +2861,6 @@ victory
 video
 view
 viewer
-villa
 village
 violate
 violation
@@ -2895,7 +2874,6 @@ visible
 vision
 visit
 visitor
-vista
 visual
 vital
 voice
@@ -3011,7 +2989,6 @@ wrong
 yacht
 yachts
 yams
-yang
 yard
 yards
 yarn
@@ -3038,7 +3015,6 @@ yield
 yielded
 yielding
 yields
-yikes
 yoga
 yogurt
 yolk
@@ -3051,7 +3027,6 @@ yourself
 youth
 youthful
 youths
-yuck
 yummy
 zero
 zinc
