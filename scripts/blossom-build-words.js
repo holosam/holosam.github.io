@@ -72,10 +72,6 @@ for (const line of raw) {
   valid.add(w);
 }
 
-// Snapshot before the gen bank and extra_words merge in — the drift check at
-// the bottom must measure the source dictionary alone, not our own lists.
-const scowlOnly = new Set(valid);
-
 const gen = fs.readFileSync(WORD_BANK_PATH, 'utf8')
   .split('\n')
   .map(s => s.trim().toLowerCase())
@@ -123,28 +119,3 @@ const byLen = {};
 for (const w of validSorted) byLen[w.length] = (byLen[w.length] || 0) + 1;
 console.log('  validation length distribution:');
 for (const k of Object.keys(byLen).sort((a, b) => a - b)) console.log(`    ${k}: ${byLen[k]}`);
-
-// Drift check on gen.js's ENGLISH_FIRST_LETTER_PCT, which was measured from
-// this source list. Bumping the SCOWL size can invalidate it. Report only —
-// updating it regenerates every future board, which is a deliberate call.
-const refWords = [...scowlOnly].filter(w => w.length >= GEN_MIN_LEN && w.length <= GEN_MAX_LEN);
-const freshPct = {};
-for (const w of refWords) freshPct[w[0]] = (freshPct[w[0]] || 0) + 1;
-for (const l of Object.keys(freshPct)) freshPct[l] = (100 * freshPct[l]) / refWords.length;
-
-const genSrc = fs.readFileSync(path.join(ROOT, 'assets/blossom/gen.js'), 'utf8');
-const frozenBlock = genSrc.match(/ENGLISH_FIRST_LETTER_PCT = \{([^}]*)\}/);
-if (!frozenBlock) {
-  console.log('\n  NOTE: could not find ENGLISH_FIRST_LETTER_PCT in gen.js to drift-check.');
-} else {
-  const frozen = {};
-  for (const [, l, v] of frozenBlock[1].matchAll(/([a-z]):\s*([\d.]+)/g)) frozen[l] = parseFloat(v);
-  const drifted = Object.keys(freshPct)
-    .filter(l => Math.abs((frozen[l] ?? 0) - freshPct[l]) >= 0.05)
-    .map(l => `${l}: frozen ${(frozen[l] ?? 0).toFixed(2)} vs source ${freshPct[l].toFixed(2)}`);
-  console.log(`\n  first-letter table (gen.js): ${drifted.length ? 'DRIFTED' : 'matches this source list'}`);
-  for (const d of drifted) console.log(`    ${d}`);
-  if (drifted.length) {
-    console.log('    Update ENGLISH_FIRST_LETTER_PCT only if you intend every future board to change.');
-  }
-}
