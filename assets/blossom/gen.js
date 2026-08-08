@@ -104,6 +104,11 @@
     const overlapDecay = opts.overlapDecay != null ? opts.overlapDecay : 0.8;
     // Floor weight for words with no local overlap.
     const overlapFloor = opts.overlapFloor != null ? opts.overlapFloor : 0.3;
+    // Clamp on corrFactor (below): keeps any one letter's first/last-count
+    // imbalance from dominating word choice — some letters (u, y, x) are
+    // structurally rare as a word start or end in English, and left uncapped
+    // the ratio blows up to 20-30x for those.
+    const corrFactorCap = opts.corrFactorCap != null ? opts.corrFactorCap : 3;
     const targetLetters = targetTiles * 1.5;
     // Runaway guard: cap total placement attempts before reseeding. Normal
     // generation never approaches this.
@@ -123,8 +128,8 @@
     }
     const corrFactor = {};
     for (const l in poolLastCount) {
-      corrFactor[l] =
-        ((poolFirstCount[l] || 0) + 1e-9) / (poolLastCount[l] + 1e-9);
+      const ratio = ((poolFirstCount[l] || 0) + 1e-9) / (poolLastCount[l] + 1e-9);
+      corrFactor[l] = Math.min(Math.max(ratio, 1 / corrFactorCap), corrFactorCap);
     }
 
     // Every decision below — seed word, each subsequent word, every tile
