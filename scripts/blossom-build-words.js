@@ -72,9 +72,8 @@ for (const line of raw) {
   valid.add(w);
 }
 
-// Snapshot the SCOWL-only set before the gen bank and extra_words are merged
-// in below — the drift check at the bottom must measure the source dictionary
-// alone, not our own word lists.
+// Snapshot before the gen bank and extra_words merge in — the drift check at
+// the bottom must measure the source dictionary alone, not our own lists.
 const scowlOnly = new Set(valid);
 
 const gen = fs.readFileSync(WORD_BANK_PATH, 'utf8')
@@ -102,11 +101,11 @@ const genSorted = [...genSet].sort();
 
 const out = `// Word lists for Blossom. GENERATED — do not edit by hand.
 // Regenerate with: node scripts/blossom-build-words.js
-//   BLOSSOM_WORDS      = validation pool (SCOWL ESDB size 60, US English,
-//                        lengths ${MIN_LEN}-${MAX_LEN}, plus all generation words
-//                        and extra_words.txt).
-//   BLOSSOM_GEN_WORDS  = chain-generation pool (curated word_bank.txt,
-//                        lengths ${GEN_MIN_LEN}-${GEN_MAX_LEN}).
+//   BLOSSOM_WORDS     = validation pool (SCOWL ESDB size 60, US English,
+//                       lengths ${MIN_LEN}-${MAX_LEN}, plus all generation words
+//                       and extra_words.txt).
+//   BLOSSOM_GEN_WORDS = chain-generation pool (curated word_bank.txt,
+//                       lengths ${GEN_MIN_LEN}-${GEN_MAX_LEN}).
 // See scripts/blossom-build-words.js for source, license, and trade-offs.
 // Each list ships as one newline-joined string, split at load — smaller on the
 // wire and much cheaper for mobile JS engines to parse than a ~${Math.round(validSorted.length / 1000)}k-element
@@ -125,12 +124,9 @@ for (const w of validSorted) byLen[w.length] = (byLen[w.length] || 0) + 1;
 console.log('  validation length distribution:');
 for (const k of Object.keys(byLen).sort((a, b) => a - b)) console.log(`    ${k}: ${byLen[k]}`);
 
-// Drift check on gen.js's ENGLISH_FIRST_LETTER_PCT. That table is hardcoded so
-// the validation list can't leak into board generation, but it was measured
-// from THIS source list — so if the SCOWL size is ever bumped, the frozen
-// numbers may no longer describe the dictionary they claim to. Report the gap;
-// don't fix it automatically. Editing the table regenerates every future board,
-// which is a deliberate call, not a build step.
+// Drift check on gen.js's ENGLISH_FIRST_LETTER_PCT, which was measured from
+// this source list. Bumping the SCOWL size can invalidate it. Report only —
+// updating it regenerates every future board, which is a deliberate call.
 const refWords = [...scowlOnly].filter(w => w.length >= GEN_MIN_LEN && w.length <= GEN_MAX_LEN);
 const freshPct = {};
 for (const w of refWords) freshPct[w[0]] = (freshPct[w[0]] || 0) + 1;

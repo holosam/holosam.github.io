@@ -86,31 +86,16 @@
     return out;
   }
 
-  // How often each letter starts an English word, in percent. This is the
-  // target shape for a chain's start letters (see corrFactor below).
-  //
-  // Derived from SCOWL/ESDB size 60 (US English, max_variant=0), lowercase
-  // entries only, lengths 4-8 — the same shape as the generation pool. N =
-  // 40,769 words. It is TYPE frequency (each dictionary word counted once),
-  // not token frequency from running text, because Blossom's answers are
-  // dictionary words, not prose. Sums to 99.98 after rounding; the code
-  // normalizes, so exact totals don't matter.
-  //
-  // Reproduce with the size-60 list that scripts/blossom-build-words.js
-  // fetches:
+  // How often each letter starts an English word — the target shape for a
+  // chain's start letters (see corrFactor below). Percent of SCOWL-60 US
+  // entries, lengths 4-8, N=40,769. Reproduce with:
   //   awk 'f && /^[a-z]+$/ && length>=4 && length<=8 {c[substr($0,1,1)]++; n++}
   //        /^---$/{f=1} END{for (l in c) printf "%s %.2f\n", l, 100*c[l]/n}' \
   //     assets/blossom/scowl-60.txt | sort
   //
-  // HARDCODED ON PURPOSE. This used to be computed at build time from
-  // BLOSSOM_WORDS, which meant the validation list leaked into generation:
-  // adding one validate-only word (scripts/blossom-add-word.js) or curating
-  // any out would shift these counts, change every corrFactor, and silently
-  // regenerate every future board from the same seed. Board output must
-  // depend only on the seed and the generation pool. English's letter
-  // frequencies are a fact about the language, not about our word lists, so
-  // freezing them here is also the more honest model. Only change these
-  // numbers deliberately, knowing every future board changes with them.
+  // Hardcoded on purpose: derived at build time from BLOSSOM_WORDS, one
+  // validate-only word would shift every corrFactor and silently regenerate
+  // every future board. Editing these numbers changes all future boards.
   const ENGLISH_FIRST_LETTER_PCT = {
     a: 4.75, b: 7.23, c: 8.91, d: 5.91, e: 3.25, f: 4.97, g: 4.05,
     h: 3.85, i: 2.10, j: 1.24, k: 1.00, l: 3.77, m: 5.12, n: 1.90,
@@ -136,13 +121,10 @@
     const overlapDecay = opts.overlapDecay != null ? opts.overlapDecay : 0.8;
     // Floor weight for words with no local overlap.
     const overlapFloor = opts.overlapFloor != null ? opts.overlapFloor : 0.3;
-    // Clamp on corrFactor (below): keeps any one letter's target/supply
-    // imbalance from dominating word choice. Some letters are structurally
-    // lopsided — the pool offers 22x more words ending in `y` than English
-    // wants chains starting with it — and uncapped, those ratios pin the same
-    // handful of words to every board. 10 is the knee: below it the clamp
-    // starts binding on `e` and `y`, the two letters that most need
-    // correcting; above ~30 single-word oversampling climbs past 15x.
+    // Clamp on corrFactor (below). Uncapped, structurally lopsided letters
+    // (the pool has 20x more y-endings than English wants y-starts) pin the
+    // same words to every board. 10 is the knee: lower binds on `e` and `y`,
+    // which most need correcting; above ~30 oversampling climbs again.
     const corrFactorCap = opts.corrFactorCap != null ? opts.corrFactorCap : 10;
     const targetLetters = targetTiles * 1.5;
     // Runaway guard: cap total placement attempts before reseeding. Normal
@@ -152,19 +134,16 @@
     const genByFirst = {};
     for (const w of genPool) (genByFirst[w[0]] ||= []).push(w);
 
-    // Per-letter correction factors. Every word after the first STARTS on the
-    // previous word's last letter, so the chain's start-letter distribution is
-    // just the distribution of letters we pick words to END on. Left alone that
-    // tracks how English words end (e/y/t/n/r/s dominate), which looks nothing
-    // like how English words start. So weight each candidate by
+    // Each word after the first STARTS on the previous word's last letter, so
+    // the chain's start letters are just the letters we pick words to END on.
+    // Uncorrected that follows how English words end (e/y/t/n/r/s), not how
+    // they start. So weight each candidate by
     //
     //   corrFactor[last letter] = target share / our pool's supply share
     //
-    // — the target being real English's first-letter distribution (frozen in
-    // ENGLISH_FIRST_LETTER_PCT above; opts.letterFreq overrides it, for the
-    // metrics scripts), and the supply being how often our pool actually
-    // offers a word ending in that letter. Both are normalized to shares so
-    // corrFactorCap means the same thing whichever target is used.
+    // target = ENGLISH_FIRST_LETTER_PCT (opts.letterFreq overrides, for the
+    // metrics scripts); supply = how often the pool offers that ending. Both
+    // normalized, so corrFactorCap means the same thing either way.
     const poolLastCount = {};
     for (const w of genPool) {
       poolLastCount[w[w.length - 1]] = (poolLastCount[w[w.length - 1]] || 0) + 1;
