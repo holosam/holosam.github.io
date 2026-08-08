@@ -95,19 +95,36 @@ if (fs.existsSync(EXTRA_PATH)) {
 const validSorted = [...valid].sort();
 const genSorted = [...genSet].sort();
 
+// First-letter counts across the full dictionary, lengths matched to the gen
+// pool's range so it reflects the same word shapes. This is the *target* shape
+// for a chain's start letters — a plain language fact about English, measured
+// from the dictionary we already ship rather than hardcoded so it can't drift.
+// gen.js divides it by the gen pool's own supply of word-ending letters to get
+// its correction factor; deriving the target from the gen pool instead (what it
+// used to do) just steers toward whatever skew the curation introduced.
+const letterFreqWords = validSorted.filter(w => w.length >= GEN_MIN_LEN && w.length <= GEN_MAX_LEN);
+const firstCount = {};
+for (const w of letterFreqWords) {
+  firstCount[w[0]] = (firstCount[w[0]] || 0) + 1;
+}
+
 const out = `// Word lists for Blossom. GENERATED — do not edit by hand.
 // Regenerate with: node scripts/blossom-build-words.js
-//   BLOSSOM_WORDS     = validation pool (SCOWL ESDB size 60, US English,
-//                       lengths ${MIN_LEN}-${MAX_LEN}, plus all generation words
-//                       and extra_words.txt).
-//   BLOSSOM_GEN_WORDS = chain-generation pool (curated word_bank.txt,
-//                       lengths ${GEN_MIN_LEN}-${GEN_MAX_LEN}).
+//   BLOSSOM_WORDS      = validation pool (SCOWL ESDB size 60, US English,
+//                        lengths ${MIN_LEN}-${MAX_LEN}, plus all generation words
+//                        and extra_words.txt).
+//   BLOSSOM_GEN_WORDS  = chain-generation pool (curated word_bank.txt,
+//                        lengths ${GEN_MIN_LEN}-${GEN_MAX_LEN}).
+//   BLOSSOM_LETTER_FREQ = first-letter counts across BLOSSOM_WORDS (lengths
+//                        ${GEN_MIN_LEN}-${GEN_MAX_LEN}) — real English first-letter frequency,
+//                        the target shape for gen.js's chain-building correction.
 // See scripts/blossom-build-words.js for source, license, and trade-offs.
 // Each list ships as one newline-joined string, split at load — smaller on the
 // wire and much cheaper for mobile JS engines to parse than a ~${Math.round(validSorted.length / 1000)}k-element
 // array literal.
 window.BLOSSOM_WORDS = ${JSON.stringify(validSorted.join('\n'))}.split("\\n");
 window.BLOSSOM_GEN_WORDS = ${JSON.stringify(genSorted.join('\n'))}.split("\\n");
+window.BLOSSOM_LETTER_FREQ = { first: ${JSON.stringify(firstCount)} };
 `;
 
 fs.writeFileSync(OUT_PATH, out);

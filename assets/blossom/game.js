@@ -11,7 +11,9 @@
   // Bump the version when the generator changes so state referencing cells that
   // no longer exist on the new board is discarded.
   const STORAGE_KEY = "blossom-v2-" + TODAY_KEY;
-  const BOARD = generateBoard(seedForDate(TODAY), window.BLOSSOM_GEN_WORDS);
+  const BOARD = generateBoard(seedForDate(TODAY), window.BLOSSOM_GEN_WORDS, {
+    letterFreq: window.BLOSSOM_LETTER_FREQ,
+  });
   const LONGEST_WORD = BOARD.chain.reduce(
     (a, b) => (b.length > a.length ? b : a),
     "",
@@ -23,6 +25,7 @@
     delete window.BlossomGen;
     delete window.BLOSSOM_WORDS;
     delete window.BLOSSOM_GEN_WORDS;
+    delete window.BLOSSOM_LETTER_FREQ;
   } catch {}
 
   function pruneOldDays() {

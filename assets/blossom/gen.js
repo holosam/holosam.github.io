@@ -104,11 +104,14 @@
     const overlapDecay = opts.overlapDecay != null ? opts.overlapDecay : 0.8;
     // Floor weight for words with no local overlap.
     const overlapFloor = opts.overlapFloor != null ? opts.overlapFloor : 0.3;
-    // Clamp on corrFactor (below): keeps any one letter's first/last-count
-    // imbalance from dominating word choice — some letters (u, y, x) are
-    // structurally rare as a word start or end in English, and left uncapped
-    // the ratio blows up to 20-30x for those.
-    const corrFactorCap = opts.corrFactorCap != null ? opts.corrFactorCap : 3;
+    // Clamp on corrFactor (below): keeps any one letter's target/supply
+    // imbalance from dominating word choice. Some letters are structurally
+    // lopsided — the pool offers 22x more words ending in `y` than English
+    // wants chains starting with it — and uncapped, those ratios pin the same
+    // handful of words to every board. 10 is the knee: below it the clamp
+    // starts binding on `e` and `y`, the two letters that most need
+    // correcting; above ~30 single-word oversampling climbs past 15x.
+    const corrFactorCap = opts.corrFactorCap != null ? opts.corrFactorCap : 10;
     const targetLetters = targetTiles * 1.5;
     // Runaway guard: cap total placement attempts before reseeding. Normal
     // generation never approaches this.
@@ -117,18 +120,34 @@
     const genByFirst = {};
     for (const w of genPool) (genByFirst[w[0]] ||= []).push(w);
 
-    // Per-letter correction factors: up-weight candidates ending on letters that
-    // are common chain-starters, down-weight rare ones, so the chain's stationary
-    // distribution tracks the pool's first-letter (not last-letter) distribution.
-    const poolFirstCount = {};
+    // Per-letter correction factors. Every word after the first STARTS on the
+    // previous word's last letter, so the chain's start-letter distribution is
+    // just the distribution of letters we pick words to END on. Left alone that
+    // tracks how English words end (e/y/t/n/r/s dominate), which looks nothing
+    // like how English words start. So weight each candidate by
+    //
+    //   corrFactor[last letter] = target share / our pool's supply share
+    //
+    // — the target being the start-letter distribution we want the chain to
+    // have (opts.letterFreq.first, real English, when given; else the gen
+    // pool's own first letters), and the supply being how often our pool
+    // actually offers a word ending in that letter. Both are normalized to
+    // shares so corrFactorCap means the same thing whichever target is used.
     const poolLastCount = {};
+    const poolFirstCount = {};
     for (const w of genPool) {
       poolFirstCount[w[0]] = (poolFirstCount[w[0]] || 0) + 1;
       poolLastCount[w[w.length - 1]] = (poolLastCount[w[w.length - 1]] || 0) + 1;
     }
+    const targetCount = (opts.letterFreq && opts.letterFreq.first) || poolFirstCount;
+    let targetTotal = 0, supplyTotal = 0;
+    for (const l in targetCount) targetTotal += targetCount[l];
+    for (const l in poolLastCount) supplyTotal += poolLastCount[l];
     const corrFactor = {};
     for (const l in poolLastCount) {
-      const ratio = ((poolFirstCount[l] || 0) + 1e-9) / (poolLastCount[l] + 1e-9);
+      const target = (targetCount[l] || 0) / targetTotal;
+      const supply = poolLastCount[l] / supplyTotal;
+      const ratio = (target + 1e-9) / (supply + 1e-9);
       corrFactor[l] = Math.min(Math.max(ratio, 1 / corrFactorCap), corrFactorCap);
     }
 
