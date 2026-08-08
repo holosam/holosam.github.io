@@ -749,7 +749,6 @@ distant
 distinct
 distribute
 district
-disturb
 diverse
 diversity
 divide
@@ -891,7 +890,6 @@ entry
 envelope
 envy
 epic
-epidemic
 episode
 episodes
 equal
@@ -1769,7 +1767,6 @@ nothing
 notice
 notify
 notion
-nova
 novel
 nowhere
 nuclear
@@ -2270,7 +2267,6 @@ satisfy
 sauce
 save
 saving
-scab
 scale
 scandal
 scared
@@ -2446,7 +2442,6 @@ somewhere
 song
 sonic
 soon
-sorrow
 sorry
 sort
 soul
@@ -2691,7 +2686,6 @@ threaten
 three
 threw
 throat
-throb
 through
 throughout
 throw
@@ -2743,7 +2737,6 @@ trade
 tradition
 traffic
 tragedy
-tragic
 trail
 train
 training
@@ -2963,7 +2956,6 @@ without
 witness
 wolf
 woman
-womb
 wonder
 wonderful
 wood
