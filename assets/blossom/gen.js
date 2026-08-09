@@ -121,11 +121,8 @@
     const overlapDecay = opts.overlapDecay != null ? opts.overlapDecay : 0.8;
     // Floor weight for words with no local overlap.
     const overlapFloor = opts.overlapFloor != null ? opts.overlapFloor : 0.3;
-    // Clamp on corrFactor (below). Uncapped, structurally lopsided letters
-    // (the pool has 20x more y-endings than English wants y-starts) pin the
-    // same words to every board. 10 is the knee: lower binds on `e` and `y`,
-    // which most need correcting; above ~30 oversampling climbs again.
-    const corrFactorCap = opts.corrFactorCap != null ? opts.corrFactorCap : 10;
+    // Clamps corrFactor (below) to [1/cap, cap].
+    const corrFactorCap = opts.corrFactorCap != null ? opts.corrFactorCap : 3;
     const targetLetters = targetTiles * 1.5;
     // Runaway guard: cap total placement attempts before reseeding. Normal
     // generation never approaches this.
