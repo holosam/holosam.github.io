@@ -113,7 +113,7 @@
     const lengthAlpha = opts.lengthAlpha != null ? opts.lengthAlpha : 0.6;
     // Intrinsic per-length preference (default 1), damping the short/long
     // extremes so they sprinkle in without dominating the mix.
-    const lengthWeight = opts.lengthWeight || { 4: 0.75, 5: 0.9, 7: 1.15, 8: 0.5 };
+    const lengthWeight = opts.lengthWeight || { 4: 1.1, 5: 0.9, 7: 1.15, 8: 0.5 };
     // Localized-overlap weighting: reward letters that can reuse a tile near the
     // junction, weighting the word's earliest letters most (the ones the greedy
     // placer can actually fold back onto an existing tile).
